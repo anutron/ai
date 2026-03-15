@@ -20,6 +20,9 @@ EXCLUDE=(
   paused-sessions
   wind-down
   wind-up
+  publish-skills
+  set-topic
+  todo-agent
 )
 
 is_excluded() {
@@ -43,8 +46,7 @@ for skill_dir in "$SOURCE"/*/; do
     echo "  skip: $name"
     ((skipped++))
   else
-    mkdir -p "$DEST/$name"
-    cp "$skill_dir/SKILL.md" "$DEST/$name/SKILL.md"
+    cp -r "$skill_dir" "$DEST/$name"
     echo "  copy: $name"
     ((copied++))
   fi
