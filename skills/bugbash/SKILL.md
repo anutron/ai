@@ -1,5 +1,5 @@
 ---
-name: bug-bash
+name: bugbash
 description: Interactive QA session — report bugs conversationally, agents fix them in parallel using worktrees.
 ---
 
@@ -102,30 +102,41 @@ When invoked with no arguments (or the session is already active):
 
 ## Bug Intake (when user describes a bug)
 
-**YOU ARE AN INTAKE CLERK, NOT AN ENGINEER.**
+**YOU ARE A TRIAGE NURSE, NOT A SURGEON.**
 
-This is the most important rule of bug bash. When a user reports a bug:
+Your job is to produce a high-quality bug spec so the fix agent can work autonomously. You locate the problem area but never investigate root causes or propose fixes.
 
-- **NEVER** use Read, Grep, Glob, or any code exploration tools
-- **NEVER** investigate the bug yourself — that's the agent's job
-- **NEVER** suggest a fix approach or speculate about root causes in the bug spec
-- **ONLY** use the user's words, screenshots, and your general project knowledge (from memory/CLAUDE.md) to write the bug spec
+- **NEVER** use `Read` on source code files
+- **NEVER** investigate the bug or suggest a fix approach
+- **ALLOWED** during triage: targeted `Glob`/`Grep` to locate relevant files (see Step 2)
+- **ONLY** use the user's words, screenshots, search results, and general project knowledge to write the bug spec
 
-If you catch yourself thinking "let me just check one file to write a better spec" — STOP. That's the agent's job. A vague spec that dispatches in 10 seconds beats a precise spec that cost 5 minutes of context.
+### Step 1: Classify Clarity
 
-### Step 1: Assess Clarity
+Parse the user's description and classify into one of three tiers:
 
-Parse the user's description. A dispatchable bug needs at minimum:
-- **What's broken** — the observable problem
-- **Where** — enough context to find it (component name, page, file, behavior)
+| Tier | Signal | Example |
+|------|--------|---------|
+| **Clear** | User names files/component + expected vs actual | "SidebarCount.tsx shows stale count after adding items" |
+| **Locatable** | Behavior described, location unknown | "The sidebar count is wrong" |
+| **Ambiguous** | Unclear what's broken, or multiple interpretations | "The sidebar is messed up" |
 
-### Step 2: Adaptive Follow-up
+### Step 2: Triage by Tier
 
-- **If clear enough** (has what + where): proceed to Step 3 immediately
-- **If vague**: ask 1-2 targeted questions, one at a time:
-  - "What specifically is broken — what do you see vs what you expect?"
-  - "Any idea which files or components are involved?"
-- **Never more than 2 questions.** After that, dispatch with what you have.
+**Clear** (user named files/component + expected vs actual):
+→ Proceed to Step 3 immediately.
+
+**Locatable** (behavior described, location unknown):
+→ Run up to 3 `Glob`/`Grep` calls to identify likely files by name or keyword.
+→ Do NOT `Read` file contents — just find file paths.
+→ Add results to "Files Likely Involved" in the bug spec.
+→ Proceed to Step 3.
+
+**Ambiguous** (unclear what's broken, or multiple interpretations):
+→ Echo back a 1-line interpretation: `"Filing as: <your interpretation>. Correct?"`
+→ If user confirms or doesn't correct: proceed to the **Locatable** step above.
+→ If user clarifies: update understanding, proceed.
+→ Max 1 clarification round, then dispatch with best understanding.
 
 ### Step 3: Save Attachments
 
@@ -158,7 +169,7 @@ attachments:
 <what should happen instead>
 
 ## Files Likely Involved
-<ONLY if user named specific files. Otherwise: "Unknown — agent should explore">
+<from user + triage search results. If neither produced anything: "Unknown — agent should explore">
 ```
 
 Do NOT add a "Fix Approach" section. The agent will figure it out.
@@ -450,7 +461,7 @@ If the build fails, report the error and stop — don't proceed with a stale bui
 
 Run the report generator script:
 ```bash
-/Users/aaron/.claude/skills/bug-bash/generate-report.sh <project-root>
+/Users/aaron/.claude/skills/bugbash/generate-report.sh <project-root>
 ```
 
 This parses all `merged/` bug files and writes `.bug-bash/report.md` with title, fix summary, test guidance, and files changed for each bug. Runs in under a second.
@@ -488,7 +499,7 @@ When annotations come back:
 - **Annotated bugs = FAILED regression.** For each:
   - File a new bug (next ID) referencing the original as `related:`
   - Move the new bug to `todo/` for dispatch
-  - Keep the original in `merged/` (the code change was merged, it just didn't fully work)
+  - Move the original to `failed/` — it didn't pass acceptance testing, so it shouldn't clutter the dashboard
 
 - **Unannotated bugs = PASSED.** Move to `verified/`:
   ```bash
@@ -545,15 +556,20 @@ Merge in completion order (first done, first merged). If a later merge conflicts
 
 The main thread is a coordinator, not an engineer. This is a HARD rule, not a guideline.
 
-### Forbidden Tools During Intake
+### Forbidden Tools (Always)
 
 When processing a bug report, you MUST NOT use:
-- `Read` (on source code — bug files and agent output are fine)
-- `Grep`
-- `Glob`
+- `Read` on source code files (bug files and agent output are fine)
 - `Agent` with subagent_type=Explore
 
-### Allowed Tools
+### Allowed During Triage (Locatable/Ambiguous bugs only)
+
+- `Glob` — up to 2 calls to find relevant files by name/pattern
+- `Grep` — up to 1 call to locate a component/function by keyword
+- **Total: max 3 search calls per bug, zero file reads**
+- Goal: populate "Files Likely Involved" so the agent has a starting point
+
+### Always Allowed
 
 - `Bash` — only for: git commands, mkdir, mv, file copy, worktree management
 - `Write` — only for: bug files
@@ -562,13 +578,14 @@ When processing a bug report, you MUST NOT use:
 
 ### Rationale
 
-Every line of source code you read in the main thread is wasted context. The fix agents have full context windows of their own. A bug spec that says "Agent should explore" is perfectly fine — that's literally what agents are for.
+Every line of source code you read in the main thread is wasted context. But a few targeted file-path searches (~50 tokens) dramatically improve agent success rates by giving them a starting point instead of "explore everything." The line is: **locate, don't investigate.**
 
 ### Summary Rules
 
 1. **Never read source code yourself** — agents do that
 2. **Never write fixes yourself** — agents do that
 3. **Never investigate root causes yourself** — agents do that
-4. **Only read**: bug files, agent results, git status/log/diff
-5. **Keep agent prompts detailed** so they work autonomously
-6. **Bug reports to user are 1-2 lines max** — don't echo back everything
+4. **Locate relevant files** with up to 3 Glob/Grep calls per bug (paths only, no content)
+5. **Only read**: bug files, agent results, git status/log/diff
+6. **Keep agent prompts detailed** so they work autonomously
+7. **Bug reports to user are 1-2 lines max** — don't echo back everything

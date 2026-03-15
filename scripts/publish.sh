@@ -44,11 +44,11 @@ for skill_dir in "$SOURCE"/*/; do
   name="$(basename "$skill_dir")"
   if is_excluded "$name"; then
     echo "  skip: $name"
-    ((skipped++))
+    skipped=$((skipped + 1))
   else
     cp -r "$skill_dir" "$DEST/$name"
     echo "  copy: $name"
-    ((copied++))
+    copied=$((copied + 1))
   fi
 done
 

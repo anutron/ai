@@ -55,9 +55,17 @@ Use this format, omitting empty sections:
 
 Keep it concise but complete enough that the receiving agent can continue without re-discovering context.
 
-### Step 2: Present the Handoff
+### Step 2: Present the Handoff and Copy to Clipboard
 
-Print the handoff inside a fenced code block so the user can copy it.
+Print the handoff inside a fenced code block so the user can review it. Then **automatically copy it to the clipboard** using pbcopy:
+
+```bash
+cat <<'HANDOFF_EOF' | pbcopy
+[the full handoff document content]
+HANDOFF_EOF
+```
+
+This ensures the handoff is immediately ready to paste into a new session without manual selection.
 
 ### Step 3: Persist to Memory
 

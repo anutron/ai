@@ -17,6 +17,8 @@ Show all uncommitted and unstaged changes in the current repo, grouped by logica
 
 ## Instructions
 
+**SCOPE: Only operate on the git repo at the current working directory.** Do not cd to other repos, even if you know about them or recently made changes there. If the current repo is clean, say so and stop.
+
 ### 1. Gather all changes
 
 Collect everything that's uncommitted:

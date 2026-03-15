@@ -10,7 +10,7 @@ Copy any `SKILL.md` file into your project's `.claude/skills/<name>/SKILL.md` or
 
 | Skill | Description |
 |-------|-------------|
-| [bug-bash](skills/bug-bash/SKILL.md) | Interactive QA — report bugs conversationally, agents fix them in parallel using worktrees |
+| [bugbash](skills/bugbash/SKILL.md) | Interactive QA — report bugs conversationally, agents fix them in parallel using worktrees |
 | [changelog](skills/changelog/SKILL.md) | Generate an intelligent changelog from recent commits |
 | [debug](skills/debug/SKILL.md) | Multi-agent competing hypotheses debugging |
 | [dev](skills/dev/SKILL.md) | Multi-agent iterative development with parallel testing and code review |
@@ -21,6 +21,7 @@ Copy any `SKILL.md` file into your project's `.claude/skills/<name>/SKILL.md` or
 | [handoff](skills/handoff/SKILL.md) | Generate a handoff prompt to pass context to another agent thread |
 | [improve](skills/improve/SKILL.md) | End-of-session retrospective — upgrade skills, fix codebase gaps, capture durable knowledge |
 | [list-skills](skills/list-skills/SKILL.md) | Quick reference of all available skills |
+| [mcp-prune](skills/mcp-prune/SKILL.md) | Analyze active MCP servers and disable irrelevant ones for the current project |
 | [merge](skills/merge/SKILL.md) | Merge current branch to master via GitHub PR merge |
 | [nexonia-expenses](skills/nexonia-expenses/SKILL.md) | Browser automation for expense reports — reads receipts, builds line items, automates form entry |
 | [pr](skills/pr/SKILL.md) | Open a PR, wait for CI, fix failures, address review comments, loop until green |
@@ -29,8 +30,10 @@ Copy any `SKILL.md` file into your project's `.claude/skills/<name>/SKILL.md` or
 | [rereview](skills/rereview/SKILL.md) | Re-review with fresh eyes — zero regressions, slow and thorough |
 | [review](skills/review/SKILL.md) | Quick code review shorthand for current changes or a PR number |
 | [save-w-specs](skills/save-w-specs/SKILL.md) | Save progress — update SPECs for behavioral changes, then commit |
+| [skill-audit](skills/skill-audit/SKILL.md) | Analyze skill usage logs and recommend which to keep, prune, or consolidate |
 | [test](skills/test/SKILL.md) | Intelligent test runner that targets changed code and identifies coverage gaps |
 | [unstaged](skills/unstaged/SKILL.md) | Show uncommitted changes grouped by logical commit themes |
+| [worktree](skills/worktree/SKILL.md) | Close a git worktree and merge it back to the main branch |
 | [write-skill](skills/write-skill/SKILL.md) | Create or improve a Claude Code skill with best practices |
 
 ## Plugins I Use
@@ -49,13 +52,3 @@ These are the [Claude Code plugins](https://docs.anthropic.com/en/docs/claude-co
 | **github** | `claude-plugins-official` | GitHub MCP integration — issues, PRs, code search |
 | **code-review** | `claude-code-plugins` | Code review for pull requests |
 | **security-guidance** | `claude-code-plugins` | Security-focused code analysis |
-| **plannotator** | `plannotator` | Interactive plan annotation and code review UI |
-| **baker_st** | `sherlock-marketplace` | Data investigation toolkit — SQL query building, findings management, slide decks |
-
-## Publishing
-
-Skills are synced from my private working repo. To re-publish after changes:
-
-```bash
-./scripts/publish.sh
-```
