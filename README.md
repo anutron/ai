@@ -17,6 +17,7 @@ Copy any `SKILL.md` file into your project's `.claude/skills/<name>/SKILL.md` or
 | [devils-advocate](skills/devils-advocate/SKILL.md) | Challenge your own plans — structured counter-arguments before committing to an approach |
 | [disk-cleanup](skills/disk-cleanup/SKILL.md) | Scan local disk for large storage consumers and identify cleanup opportunities |
 | [execute-plan](skills/execute-plan/SKILL.md) | Execute a plan with a team of agents, delegating to spare tokens in the main thread |
+| [fixit](skills/fixit/SKILL.md) | Fire-and-forget bug fix — backgrounds an agent in a worktree to fix and merge back |
 | [guard](skills/guard/SKILL.md) | Pre-commit safety check for secrets, security antipatterns, and test breakage |
 | [handoff](skills/handoff/SKILL.md) | Generate a handoff prompt to pass context to another agent thread |
 | [improve](skills/improve/SKILL.md) | End-of-session retrospective — upgrade skills, fix codebase gaps, capture durable knowledge |
