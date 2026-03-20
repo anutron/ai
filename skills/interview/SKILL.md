@@ -9,7 +9,7 @@ Run a collaborative, structured review of any system, feature, or domain. You ar
 
 ## Arguments
 
-- `$ARGUMENTS` - What to review (e.g., "the RBAC permissions in merchant-ui", "our API endpoints", "the onboarding flow")
+- `$ARGUMENTS` - What to review (e.g., "the permissions system", "our API endpoints", "the onboarding flow")
 
 If no arguments provided, ask: "What would you like to review?"
 
