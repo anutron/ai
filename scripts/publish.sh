@@ -55,5 +55,24 @@ for skill_dir in "$SOURCE"/*/; do
   fi
 done
 
+# Copy bin/ artifacts
+BIN_SOURCE="$HOME/Personal/AI-RON/.claude/bin"
+BIN_DEST="$(cd "$(dirname "$0")/.." && pwd)/bin"
+BIN_PUBLISH=(
+  statusline.sh
+)
+
+mkdir -p "$BIN_DEST"
+bin_copied=0
+for f in "${BIN_PUBLISH[@]}"; do
+  if [ -f "$BIN_SOURCE/$f" ]; then
+    cp "$BIN_SOURCE/$f" "$BIN_DEST/$f"
+    echo "  copy: bin/$f"
+    bin_copied=$((bin_copied + 1))
+  else
+    echo "  MISSING: bin/$f"
+  fi
+done
+
 echo ""
-echo "Published $copied skills ($skipped excluded)"
+echo "Published $copied skills ($skipped excluded), $bin_copied bin files"

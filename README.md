@@ -39,6 +39,19 @@ Copy any `SKILL.md` file into your project's `.claude/skills/<name>/SKILL.md` or
 | [worktree](skills/worktree/SKILL.md) | Close a git worktree and merge it back to the main branch |
 | [write-skill](skills/write-skill/SKILL.md) | Create or improve a Claude Code skill with best practices |
 
+## Extras
+
+| File | Description |
+|------|-------------|
+| [statusline.sh](bin/statusline.sh) | Custom Claude Code status line — context bar, git status, session topic, and terminal title |
+
+To use the status line, point your Claude Code settings at it:
+```json
+{
+  "statusLine": ".claude/bin/statusline.sh"
+}
+```
+
 ## Plugins I Use
 
 These are the [Claude Code plugins](https://docs.anthropic.com/en/docs/claude-code/plugins) I have enabled. Most are from the official marketplace.
