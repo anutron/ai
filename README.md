@@ -28,6 +28,7 @@ Copy any `SKILL.md` file into your project's `.claude/skills/<name>/SKILL.md` or
 | [plannotator-specs](skills/plannotator-specs/SKILL.md) | Interactive spec review via Plannotator — review with inline annotations before committing |
 | [pr](skills/pr/SKILL.md) | Open a PR, wait for CI, fix failures, address review comments, loop until green |
 | [pr-dashboard](skills/pr-dashboard/SKILL.md) | Show open PRs, review requests, and recently closed PRs with age and status |
+| [pr-respond](skills/pr-respond/SKILL.md) | Read PR review feedback, triage each comment (adopt/reject with reasoning), optionally apply changes and commit |
 | [promote](skills/promote/SKILL.md) | Audit project skills and recommend which to promote to global |
 | [rereview](skills/rereview/SKILL.md) | Re-review with fresh eyes — zero regressions, slow and thorough |
 | [review](skills/review/SKILL.md) | Quick code review shorthand for current changes or a PR number |
