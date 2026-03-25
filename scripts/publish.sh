@@ -21,7 +21,6 @@ EXCLUDE=(
   wind-down
   wind-up
   publish-skills
-  set-topic
   todo-agent
 )
 

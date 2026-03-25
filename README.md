@@ -33,6 +33,7 @@ Copy any `SKILL.md` file into your project's `.claude/skills/<name>/SKILL.md` or
 | [rereview](skills/rereview/SKILL.md) | Re-review with fresh eyes — zero regressions, slow and thorough |
 | [review](skills/review/SKILL.md) | Quick code review shorthand for current changes or a PR number |
 | [save-w-specs](skills/save-w-specs/SKILL.md) | Save progress — spec-aware commit that verifies specs were updated alongside behavioral changes |
+| [set-topic](skills/set-topic/SKILL.md) | Set the session topic displayed in the status line — pairs with [statusline.sh](bin/statusline.sh) |
 | [skill-audit](skills/skill-audit/SKILL.md) | Analyze skill usage logs and recommend which to keep, prune, or consolidate |
 | [test](skills/test/SKILL.md) | Intelligent test runner that targets changed code and identifies coverage gaps |
 | [unstaged](skills/unstaged/SKILL.md) | Show uncommitted changes grouped by logical commit themes |
@@ -45,6 +46,8 @@ Copy any `SKILL.md` file into your project's `.claude/skills/<name>/SKILL.md` or
 | File | Description |
 |------|-------------|
 | [statusline.sh](bin/statusline.sh) | Custom Claude Code status line — context bar, git status, session topic, and terminal title |
+
+The status line displays a **session topic** that Claude sets via the [set-topic](skills/set-topic/SKILL.md) skill. The statusline writes a PID-to-session mapping on each render; `/set-topic` writes the topic text to the same directory (`~/.claude/session-topics/`). Both pieces are needed for session topics to work.
 
 To use the status line, point your Claude Code settings at it:
 ```json
