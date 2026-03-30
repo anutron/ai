@@ -123,7 +123,7 @@ This works well for small-to-medium codebases. For large-scale applications, you
 | [bugbash](skills/bugbash/SKILL.md) | Interactive QA — report bugs conversationally, agents fix them in parallel using worktrees |
 | [guard](skills/guard/SKILL.md) | Pre-commit safety check for secrets, security antipatterns, and test breakage |
 | [unstaged](skills/unstaged/SKILL.md) | Show uncommitted changes grouped by logical commit themes |
-| [worktree](skills/worktree/SKILL.md) | Close a git worktree and merge it back to the main branch |
+| [close-worktree](skills/close-worktree/SKILL.md) | Close a git worktree and merge it back to the main branch |
 | [review](skills/review/SKILL.md) | Quick code review shorthand — reviews current changes or a PR number |
 | [rereview](skills/rereview/SKILL.md) | Re-review with fresh eyes — zero regressions, slow and thorough |
 
