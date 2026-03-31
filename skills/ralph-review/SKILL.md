@@ -472,9 +472,48 @@ After all drift items are addressed and any in-flight fixits complete, offer: "S
 
 ## Phase 2: Final Report
 
-After the loop exits, generate the report.
+After the loop exits, update audit trail (if applicable) and generate the report.
 
-### Setup
+### Audit Resolution Tracking
+
+If the project has spec audits (`specs/audits/`), check whether any of ralph's fixes resolve tracked audit findings:
+
+1. Find the latest audit: `ls -d specs/audits/*/ | sort | tail -1`
+2. Read the audit's `index.md` — look for a "Resolution Status" section
+3. If one exists, check whether any findings ralph fixed (auto-fix or user-directed) correspond to open audit items (contradictions, behavioral gaps, unimplemented promises)
+4. Update the resolution table: mark items as resolved with the commit SHA and resolution type (spec fix, code fix, audit false positive)
+5. Update the counters (e.g., "Contradictions — 19/19 resolved" or "Behavioral Gaps — 5/142 resolved")
+
+If no Resolution Status section exists, create one following this format:
+
+```markdown
+## Resolution Status
+
+### Contradictions — {resolved}/{total} resolved ({date})
+
+| # | Issue | Resolution | Commit |
+|---|-------|-----------|--------|
+| 1 | {short description} | {resolution type} — {detail of what changed} | `{sha}` |
+
+### Behavioral Gaps — {resolved}/{total} resolved
+
+{same table format, or "Not yet started."}
+
+### Unimplemented Spec Promises — {resolved}/{total} resolved
+
+{same table format, or "Not yet started."}
+```
+
+**Resolution conventions:**
+- **Resolution types:** "Spec fix", "Code fix", "Audit false positive" (audit was wrong — spec/code already agreed)
+- **Resolution detail:** Brief description after the type (e.g., "Spec fix — removed all Threads references", "Code fix — added daemonAware interface")
+- **Commit column:** SHA of the fix commit. Use `—` if no commit was needed (e.g., audit false positive)
+- **Date in heading:** Include the date when items were resolved (e.g., `(2026-03-30)`)
+- **Counters:** Keep `{resolved}/{total}` current in each subsection heading
+
+This keeps the audit as the single durable record of what was found and what was done about it. Future sessions can read the audit index to know what's already resolved without re-investigating.
+
+### Report File
 
 ```bash
 mkdir -p .claude/reviews/$(date +%Y-%m-%d)

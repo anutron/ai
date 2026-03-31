@@ -37,10 +37,12 @@ Bugs live in status folders — the folder IS the status. No need to read files 
 
 ```
 .bug-bash/
-  todo/              # Queued, waiting for agent slot
+  todo/              # Queued, waiting for investigation + agent slot
     bug-001.md
     bug-003.md
-  in-progress/       # Agent actively working
+  investigating/     # Investigation agent analyzing (foreground, pre-dispatch)
+    bug-004.md
+  in-progress/       # Fix agent actively working
     bug-002.md
   blocked/           # Agent stopped — needs user input before continuing
   merged/            # Fix merged, awaiting acceptance testing
@@ -56,7 +58,9 @@ Bugs live in status folders — the folder IS the status. No need to read files 
 
 **Status transitions = `mv`:**
 ```bash
-mv .bug-bash/todo/bug-001.md .bug-bash/in-progress/    # dispatched
+mv .bug-bash/todo/bug-001.md .bug-bash/investigating/   # investigation started
+mv .bug-bash/investigating/bug-001.md .bug-bash/in-progress/  # investigation done, fix dispatched
+mv .bug-bash/investigating/bug-001.md .bug-bash/blocked/      # high-risk conflict, needs user input
 mv .bug-bash/in-progress/bug-001.md .bug-bash/merged/   # fix merged
 mv .bug-bash/in-progress/bug-001.md .bug-bash/failed/   # agent failed
 mv .bug-bash/in-progress/bug-001.md .bug-bash/conflict/  # merge conflict
@@ -74,7 +78,7 @@ When invoked with no arguments (or the session is already active):
 1. **Initialize if needed:**
    - Create status folders:
      ```bash
-     mkdir -p .bug-bash/{todo,in-progress,blocked,merged,verified,failed,conflict,attachments}
+     mkdir -p .bug-bash/{todo,investigating,in-progress,blocked,merged,verified,failed,conflict,attachments}
      ```
    - Add `.bug-bash/` to `.gitignore` if not already there (append, don't overwrite)
    - Initialize internal state:
@@ -177,7 +181,54 @@ Do NOT add a "Fix Approach" section. The agent will figure it out.
 
 **Note:** No `status:` field in frontmatter — the folder is the status.
 
-### Step 5: Dispatch or Queue
+### Step 5: Investigate Before Dispatching
+
+Before dispatching a fix agent, run a **read-only investigation agent** in the background. This catches dependency conflicts without blocking bug intake — you keep accepting new bugs while investigations run.
+
+**Move to investigating:**
+```bash
+mv .bug-bash/todo/bug-<NNN>.md .bug-bash/investigating/
+```
+
+**Dispatch an Explore agent (`run_in_background: true`):**
+
+```
+Investigate BUG-<NNN>: <title>
+
+Bug description: <from bug.md>
+Expected behavior: <from bug.md>
+Files likely involved: <from bug.md>
+
+Your job is READ-ONLY investigation. Do NOT write code or propose fixes.
+
+Answer these questions:
+1. What is the root cause? (read the relevant code, trace the bug)
+2. What functions/methods would need to change?
+3. What OTHER code depends on those functions? (grep for callers, check interfaces)
+4. Could fixing this break anything else? (list specific concerns)
+5. Is the user's expected behavior compatible with other behaviors in the system?
+
+Report format:
+- **Root cause:** 1-2 sentences
+- **Files to change:** list with line numbers
+- **Dependencies:** other code that calls/uses the affected code
+- **Risk:** low (isolated change) | medium (has callers but change is compatible) | high (conflicts with other behavior)
+- **Conflicts:** any specific concerns about the fix breaking other things
+```
+
+**Do NOT wait for the investigation to return.** Continue accepting bug reports. When the investigation agent completes (you'll be notified), process its findings:
+
+- **Risk: low** → Append `## Investigation` section to bug file, auto-dispatch fix agent
+- **Risk: medium** → Append findings, dispatch fix agent with dependency warnings in prompt
+- **Risk: high** → Report to user:
+  ```
+  BUG-<NNN> has conflicts: <1-line summary>
+    <brief explanation of what might break>
+    Dispatch anyway? (y/n)
+  ```
+  Move to `blocked/` until user responds. If user approves, move back to `investigating/` → dispatch fix agent with conflict context.
+
+### Step 6: Dispatch or Queue
 
 - **If a slot is available** (fewer than 3 active agents): dispatch immediately
 - **If all 3 slots are full**: leave in `todo/`, tell user:
@@ -185,7 +236,7 @@ Do NOT add a "Fix Approach" section. The agent will figure it out.
   BUG-<NNN> queued — all 3 agent slots in use. Will dispatch when a slot frees up.
   ```
 
-### Step 6: Confirm to User
+### Step 7: Confirm to User
 
 ```
 BUG-<NNN>: <title>
@@ -258,11 +309,16 @@ This project uses specs. The spec directory is: <dir from .specs file, default "
 No spec management required.
 </if>
 
+### Investigation Findings
+<from the ## Investigation section of the bug file, if present>
+<include root cause, files to change, and any dependency warnings>
+
 ### Instructions
-1. Read the bug spec and any attachments
-2. Explore the codebase to understand the problem
-3. If this is a spec-aware project (see above), follow spec-first order
-4. Otherwise: implement the fix directly
+1. Read the bug spec, any attachments, and the investigation findings
+2. Explore the codebase to understand the problem (investigation gives you a head start)
+3. **Check dependencies** — if the investigation flagged callers or risks, verify your fix doesn't break them
+4. If this is a spec-aware project (see above), follow spec-first order
+5. Otherwise: implement the fix directly
 5. Run tests if test infrastructure exists (look for Makefile, test commands in README, etc.)
 6. **Write resolution to the bug file** (see Resolution Documentation below)
 7. Commit your changes with message: "Fix BUG-<NNN>: <title>"
@@ -391,7 +447,7 @@ When invoked with `status` argument, or user says "status":
 Get status by listing each folder (no file reads needed for counts):
 
 ```bash
-ls .bug-bash/todo/ .bug-bash/in-progress/ .bug-bash/blocked/ .bug-bash/merged/ .bug-bash/verified/ .bug-bash/failed/ .bug-bash/conflict/ 2>/dev/null
+ls .bug-bash/todo/ .bug-bash/investigating/ .bug-bash/in-progress/ .bug-bash/blocked/ .bug-bash/merged/ .bug-bash/verified/ .bug-bash/failed/ .bug-bash/conflict/ 2>/dev/null
 ```
 
 Read titles only from in-progress, blocked, and todo bugs for the table. Print:
@@ -574,11 +630,17 @@ Merge in completion order (first done, first merged). If a later merge conflicts
 
 The main thread is a coordinator, not an engineer. This is a HARD rule, not a guideline.
 
-### Forbidden Tools (Always)
+### Forbidden Tools (During Triage)
 
 When processing a bug report, you MUST NOT use:
 - `Read` on source code files (bug files and agent output are fine)
-- `Agent` with subagent_type=Explore
+
+### Investigation Phase (Between Triage and Dispatch)
+
+- `Agent` with subagent_type=Explore and `run_in_background: true` — **REQUIRED** for the investigation gate (Step 5)
+- Investigation runs in the background — does NOT block bug intake
+- When the investigation agent completes, review its risk assessment and dispatch or block accordingly
+- After investigation, append findings to the bug file for the fix agent
 
 ### Allowed During Triage (Locatable/Ambiguous bugs only)
 
@@ -600,10 +662,11 @@ Every line of source code you read in the main thread is wasted context. But a f
 
 ### Summary Rules
 
-1. **Never read source code yourself** — agents do that
-2. **Never write fixes yourself** — agents do that
-3. **Never investigate root causes yourself** — agents do that
-4. **Locate relevant files** with up to 3 Glob/Grep calls per bug (paths only, no content)
-5. **Only read**: bug files, agent results, git status/log/diff
-6. **Keep agent prompts detailed** so they work autonomously
-7. **Bug reports to user are 1-2 lines max** — don't echo back everything
+1. **Never read source code yourself** — agents do that (triage + investigation)
+2. **Never write fixes yourself** — fix agents do that
+3. **Always investigate before dispatching** — the Explore agent checks for conflicts and dependencies
+4. **Locate relevant files** with up to 3 Glob/Grep calls per bug during triage (paths only, no content)
+5. **Review investigation findings** before dispatching fix agents — block on high-risk conflicts
+6. **Only read**: bug files, agent results, investigation output, git status/log/diff
+7. **Keep agent prompts detailed** so they work autonomously — include investigation findings
+8. **Bug reports to user are 1-2 lines max** — don't echo back everything
