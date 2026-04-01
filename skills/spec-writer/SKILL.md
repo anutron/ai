@@ -61,6 +61,31 @@ Concrete usage examples with real data.
 
 ---
 
+## Abstraction Boundary Rule
+
+**Specs must describe interface-level behavior, not internal implementation details.** Reference method signatures and public contracts, not private struct fields or internal data structures.
+
+**Why:** Agents read specs to build a mental model of the system. If a spec mentions internal field names, agents will write code that references those fields directly — even when those fields are private or belong to a different layer. This causes repeated hallucination failures.
+
+**Bad** (leaks implementation):
+```
+- `canLaunch()` checks `len(activeItems) < maxConcurrent`
+- Excess items are pushed to `itemQueue`
+- Remove from `activeItems` map
+```
+
+**Good** (describes the interface):
+```
+- Concurrency is managed by `scheduler` (`Scheduler` interface)
+- `scheduler.Submit(req)` returns `(queued bool, cmd Cmd)` — handles concurrency internally
+- `scheduler.ActiveItem(id)` returns the item handle or nil
+- The component does NOT have `activeItems` or `itemQueue` fields — those are internal to the scheduler implementation
+```
+
+When writing or updating specs, always ask: "Could an agent read this and correctly write code against the described API?" If the spec references fields that aren't accessible from the layer being documented, rewrite to use the interface methods instead.
+
+---
+
 ## Instructions
 
 ```

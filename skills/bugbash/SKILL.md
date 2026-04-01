@@ -269,6 +269,16 @@ git worktree remove .claude/worktrees/bug-bash-<NNN> --force 2>/dev/null
 git branch -D bug-bash/BUG-<NNN> 2>/dev/null
 ```
 
+### Rebase Worktree (if other merges landed)
+
+If other bug fixes have been merged to the main branch since the worktree was created, rebase to pick up those changes:
+
+```bash
+git -C .claude/worktrees/bug-bash-<NNN> rebase main
+```
+
+This prevents agents from working against stale code that references APIs changed by earlier bug fixes.
+
 ### Spawn Agent
 
 Use the Agent tool with `run_in_background: true` and `mode: "bypassPermissions"`:
@@ -315,14 +325,15 @@ No spec management required.
 
 ### Instructions
 1. Read the bug spec, any attachments, and the investigation findings
-2. Explore the codebase to understand the problem (investigation gives you a head start)
-3. **Check dependencies** — if the investigation flagged callers or risks, verify your fix doesn't break them
-4. If this is a spec-aware project (see above), follow spec-first order
-5. Otherwise: implement the fix directly
-5. Run tests if test infrastructure exists (look for Makefile, test commands in README, etc.)
-6. **Write resolution to the bug file** (see Resolution Documentation below)
-7. Commit your changes with message: "Fix BUG-<NNN>: <title>"
-8. If you hit uncertainty that requires a human decision, STOP and report (see Blocked Bugs below)
+2. Read the project's CLAUDE.md for architecture conventions and testing requirements
+3. Explore the codebase to understand the problem (investigation gives you a head start)
+4. **Check dependencies** — if the investigation flagged callers or risks, verify your fix doesn't break them
+5. If this is a spec-aware project (see above), follow spec-first order
+6. Otherwise: implement the fix directly
+7. Run tests if test infrastructure exists (look for Makefile, test commands in README, etc.)
+8. **Write resolution to the bug file** (see Resolution Documentation below)
+9. Commit your changes with message: "Fix BUG-<NNN>: <title>"
+10. If you hit uncertainty that requires a human decision, STOP and report (see Blocked Bugs below)
 
 ### Resolution Documentation
 Before committing, append these sections to the bug file:
@@ -373,6 +384,12 @@ git merge bug-bash/BUG-<NNN> --no-edit
 ```
 
 **If merge succeeds:**
+- Verify the build:
+  ```bash
+  # Check that the merged code compiles
+  go build ./... 2>&1 || npm run build 2>&1 || make build 2>&1
+  ```
+  If the build fails, treat it as a merge conflict — `git reset --hard HEAD~1` to undo the merge, move the bug to `conflict/`, and report the build error to the user.
 - Move bug file:
   ```bash
   mv .bug-bash/in-progress/bug-<NNN>.md .bug-bash/merged/
@@ -623,6 +640,7 @@ Merge in completion order (first done, first merged). If a later merge conflicts
 | All 3 slots full | Leave in `todo/`, dispatch when slot frees |
 | User reports bug during agent completion handling | Finish merge first, then process new bug |
 | `.bug-bash/` already exists on start | Resume session — `ls` each folder to rebuild state |
+| Agent references non-existent APIs | Move to `failed/`, append `## Hallucinated APIs` section to bug file listing what was hallucinated and what the correct API is. Include this context in any re-dispatch prompt. |
 
 ---
 

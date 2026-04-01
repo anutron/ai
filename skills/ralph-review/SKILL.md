@@ -159,6 +159,12 @@ The main thread orchestrates a loop of up to 3 iterations. Each iteration:
 6. Commits
 7. Checks termination conditions
 
+### Large Diff Handling
+
+If the diff exceeds 1500 lines or touches more than 15 files, split the review across 2-3 focused sub-agents by package area (e.g., daemon, TUI, plugins). Each agent reviews its subset of files. The main thread merges findings, deduplicates, and triages as normal. This produces more thorough reviews than a single agent scanning a massive diff.
+
+For smaller diffs, a single review agent is sufficient.
+
 ### Gathering Review Data
 
 Before the first loop iteration, collect everything the reviewer needs:
@@ -389,8 +395,11 @@ For each `[AUTO-FIX]` finding:
 
 1. Implement the fix as described in the finding
 2. After ALL fixes for this iteration are applied, run the test suite
-3. **If tests pass:**
-   - Commit with message: `ralph-review loop {N}: {summary of fixes}`
+3. **If build succeeds and tests pass:**
+   - First verify the build: `go build ./... 2>&1` (or the project's build command)
+   - If build fails: revert changes, reclassify the offending fix as `[QUESTION]` with note: "Auto-fix broke build: {error}"
+   - If build passes, run the test suite
+   - If tests pass: commit with message: `ralph-review loop {N}: {summary of fixes}`
    - Record which findings were fixed
 4. **If tests fail:**
    - Check test output to identify which fix likely broke things
