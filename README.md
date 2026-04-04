@@ -115,6 +115,7 @@ This works well for small-to-medium codebases. For large-scale applications, you
 
 | Skill | Description |
 |-------|-------------|
+| [brainstorm](skills/brainstorm/SKILL.md) | Explore intent, design the solution, write a strategic plan, and hand off to execution |
 | [dev](skills/dev/SKILL.md) | Multi-agent iterative development with parallel testing and code review |
 | [execute-plan](skills/execute-plan/SKILL.md) | Execute a plan with a team of agents, delegating to spare tokens in the main thread |
 | [fixit](skills/fixit/SKILL.md) | Fire-and-forget bug fix — backgrounds an agent in a worktree to fix and merge back |
@@ -173,7 +174,6 @@ See [claude-rules/README.md](claude-rules/README.md) for setup.
 | `052-worktree-location` | Place git worktrees in `.claude/worktree/` within spec-driven projects |
 | `055-session-topics` | Set status line topics for session identification |
 | `060-plannotator-spec-review` | Interactive spec review via Plannotator |
-| `065-airon-develop-override` | Use `/airon-develop` instead of `/brainstorm` for creative work |
 | `070-testing` | Test-driven development defaults |
 | `080-spec-driven-dev` | Spec-first development process |
 | `090-plan-archiving` | Archive approved plans to `specs/plans/` |

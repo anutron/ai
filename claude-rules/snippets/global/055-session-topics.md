@@ -3,10 +3,8 @@
 After understanding what a session is about (usually after the first real message), set the status line topic:
 
 ```bash
-SESSION_ID="${CCC_SESSION_ID:-$(cat ~/.claude/session-topics/pid-$PPID.map 2>/dev/null)}"
-# Register topic with CCC (if daemon is running)
-ccc update-session --session-id "$SESSION_ID" --topic "Your Topic Here" 2>/dev/null || true
-[ -n "$SESSION_ID" ] && echo "Your Topic Here" > ~/.claude/session-topics/${SESSION_ID}.txt
+SESSION_ID=$(cat ~/.claude/session-topics/pid-$PPID.map 2>/dev/null)
+[ -n "$SESSION_ID" ] && printf '%s' "Your Topic Here" > ~/.claude/session-topics/${SESSION_ID}.txt
 ```
 
 - Keep it concise (under ~50 chars). It renders in ALL CAPS in the status line.
