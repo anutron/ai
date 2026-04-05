@@ -10,7 +10,7 @@ Review a spec document interactively using Plannotator annotations, then iterate
 
 ## Context
 
-- Recent spec files: !`find docs/superpowers/specs specs -name "*.md" -type f 2>/dev/null | head -10`
+- Recent spec files: !`find specs -name "*.md" -type f 2>/dev/null | head -10`
 - Git status: !`git status --short 2>/dev/null | head -20`
 
 ## Instructions
@@ -20,7 +20,7 @@ Review a spec document interactively using Plannotator annotations, then iterate
 Determine which spec file to review:
 
 1. If `$ARGUMENTS` is provided, use that as the file path
-2. Otherwise, look at the conversation context for the most recently written or modified spec file (typically in `docs/superpowers/specs/` or `specs/`)
+2. Otherwise, look at the conversation context for the most recently written or modified spec file (typically in `specs/`)
 3. If still unclear, check `git status` for recently added or modified `.md` files in spec directories
 4. If no spec file can be found, tell the user and stop
 

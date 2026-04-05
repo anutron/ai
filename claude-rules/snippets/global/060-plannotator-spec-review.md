@@ -12,6 +12,6 @@
 **Why Plannotator:** It provides inline annotation — the user can leave targeted comments directly on sections, which is faster and more precise than reviewing a raw markdown file in the terminal.
 
 **This applies to (when not using `/brainstorm`):**
-- Brainstorming spec documents (`docs/superpowers/specs/`)
+- Brainstorming spec documents
 - SPEC files in `.specs`-enabled projects (`specs/`)
 - Any design document that needs user approval before proceeding

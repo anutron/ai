@@ -178,7 +178,7 @@ After applying changes, present a brief summary of what was done:
 - Do not bloat skills with edge cases that will not recur
 - Do not change the fundamental purpose or structure of a skill
 - Do not add improvements based on speculation -- only from actual session experience
-- Do not recommend changes to plugins (superpowers, plannotator, pr-review-toolkit, feature-dev, baker_st, chrome-devtools-mcp, etc.). You may name plugin shortcomings and propose local workarounds (wrapper skills, CLAUDE.md instructions, pre/post hooks), but never propose edits to plugin skill files themselves.
+- Do not recommend changes to plugins (plannotator, pr-review-toolkit, feature-dev, baker_st, chrome-devtools-mcp, etc.). You may name plugin shortcomings and propose local workarounds (wrapper skills, CLAUDE.md instructions, pre/post hooks), but never propose edits to plugin skill files themselves.
 
 ## Philosophy: Compounding Improvement
 

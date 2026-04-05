@@ -29,7 +29,7 @@ Each step has a skill. The system enforces the order.
 
 You describe what you want. Claude writes a spec using `/spec-writer`, which owns the format and ensures consistency. The spec captures behavior, not implementation — what the system does, not how.
 
-For new features, use the [**superpowers**](https://github.com/obra/superpowers) plugin's brainstorming flow to explore the design space before committing to a spec (`/plugin install superpowers@claude-plugins-official`). For smaller changes, just describe what you want and the spec gets updated inline.
+For new features, use `/brainstorm` to explore the design space before committing to a spec. For smaller changes, just describe what you want and the spec gets updated inline.
 
 **2. Spec → Plan**
 
@@ -194,7 +194,6 @@ See [Workflow Guide](docs/workflow-guide.md) for how all the pieces fit together
 
 | Plugin | Source | What it does |
 |--------|--------|-------------|
-| **superpowers** | `claude-plugins-official` | Brainstorming, TDD, plan writing/execution, systematic debugging, code review |
 | **ralph-loop** | `claude-plugins-official` | Iterative development loop — run tests and fix until green |
 | **pr-review-toolkit** | `claude-plugins-official` | Comprehensive PR review using specialized agents |
 | **commit-commands** | `claude-plugins-official` | Git workflow shortcuts — commit, push, PR creation |
