@@ -51,7 +51,7 @@ All fields are optional. Only `description` is strongly recommended.
 ```yaml
 ---
 name: skill-name
-description: One-line summary of what this skill does and when to use it
+description: Use when <trigger situation> -- <what the skill does>
 allowed-tools: Bash(git *), Bash(npm test)
 ---
 ```
@@ -59,7 +59,7 @@ allowed-tools: Bash(git *), Bash(npm test)
 | Field | Purpose |
 |---|---|
 | `name` | Skill name, used for `/name` invocation. |
-| `description` | Drives auto-activation and `/` menu. Write in third person. Max 1024 chars. Include trigger keywords. |
+| `description` | Drives auto-activation and `/` menu. MUST start with "Use when..." or "You MUST use this before/after..." to tell Claude's router when to fire. Noun-phrase descriptions ("Multi-agent debugging") will never auto-trigger. Max 1024 chars. |
 | `allowed-tools` | Tools Claude can use without asking permission. Glob patterns supported. |
 | `context` | Set to `fork` to run in an isolated subagent (no conversation history). |
 | `agent` | Subagent type when `context: fork` (e.g., `Explore`, `Plan`). |
@@ -164,7 +164,7 @@ After writing, check the skill for:
 - [ ] No `||` or `&&` operators in any dynamic context line
 - [ ] Error-prone commands use `2>/dev/null | head -N`
 - [ ] No bare `2>/dev/null` without a trailing pipe
-- [ ] Description is present and includes trigger keywords
+- [ ] Description starts with "Use when..." or "You MUST use this..." (trigger pattern, not noun phrase)
 - [ ] No inline backticks in prose that could break shell evaluation
 - [ ] No contractions in the skill body
 - [ ] Destructive skills have `disable-model-invocation: true`
