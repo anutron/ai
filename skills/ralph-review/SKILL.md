@@ -1,6 +1,6 @@
 ---
 name: ralph-review
-description: "Autonomous review-fix loop. Reviews implementation against specs/plans, auto-fixes confident changes, parks questions for the user."
+description: "Use after implementing changes in a spec-driven project to review implementation against specs/plans — auto-fixes confident changes, parks questions for the user"
 ---
 
 # Ralph Review

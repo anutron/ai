@@ -1,6 +1,6 @@
 ---
 name: disk-cleanup
-description: Scan local disk for large storage consumers and identify cleanup opportunities. Read-only — never deletes without explicit approval.
+description: Use when the user asks about disk space or storage — scans for large storage consumers and identifies cleanup opportunities. Read-only, never deletes without approval
 ---
 
 # Disk Cleanup

@@ -1,7 +1,7 @@
 ---
 name: merge
 allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git checkout:*), Bash(git pull:*), Bash(git push:*), Bash(git branch:*), Bash(git fetch:*), Bash(git log:*), Bash(git diff:*), Bash(git reset:*), Bash(git rebase:*), mcp__plugin_github_github__list_pull_requests, mcp__plugin_github_github__create_pull_request, mcp__plugin_github_github__update_pull_request, mcp__plugin_github_github__merge_pull_request
-description: Merge current branch to master via GitHub PR merge
+description: Use when the user wants to merge the current branch to master — merges via GitHub PR
 ---
 
 ## Context

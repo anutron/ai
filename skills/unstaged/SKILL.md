@@ -1,6 +1,6 @@
 ---
 name: unstaged
-description: Show uncommitted/unstaged changes grouped by logical commit themes.
+description: Use when the user wants to see what's changed or plan commits — shows uncommitted/unstaged changes grouped by logical commit themes
 ---
 
 # Unstaged Changes Overview

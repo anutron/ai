@@ -1,6 +1,6 @@
 ---
 name: pr
-description: Open a PR, wait for CI to pass, fix failures, address review comments, and loop until fully green
+description: Use when code is ready to ship — opens a PR, waits for CI to pass, fixes failures, addresses review comments, and loops until fully green
 ---
 
 ## Context

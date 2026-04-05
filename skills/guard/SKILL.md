@@ -1,6 +1,6 @@
 ---
 name: guard
-description: Pre-commit safety check for secrets, security antipatterns, and test breakage
+description: Use before any git commit to check for secrets, security antipatterns, and test breakage
 ---
 
 # Pre-commit Guard

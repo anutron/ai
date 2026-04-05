@@ -1,6 +1,6 @@
 ---
 name: rereview
-description: "Re-review with fresh eyes. Zero regressions. Go slow and analyze everything."
+description: "Use when a previous review missed something or the user wants a thorough second pass — re-review with fresh eyes, zero regressions, go slow and analyze everything"
 ---
 
 # Fresh-Eyes Re-Review

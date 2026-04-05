@@ -1,6 +1,6 @@
 ---
 name: improve
-description: End-of-session retrospective that upgrades skills, fixes codebase gaps, and captures durable knowledge
+description: Use at the end of a session to run a retrospective — upgrades skills, fixes codebase gaps, and captures durable knowledge
 ---
 
 # Improve Skills and Capture Knowledge

@@ -1,6 +1,6 @@
 ---
 name: promote
-description: Find AI-RON skills that are not yet promoted to global and recommend which ones to symlink to ~/.claude/skills/
+description: Use when checking which AI-RON skills should be available globally — finds skills not yet promoted and recommends which to symlink to ~/.claude/skills/
 ---
 
 # Skill Promotion Audit

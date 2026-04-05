@@ -1,6 +1,6 @@
 ---
 name: agent-driven-development
-description: "Orchestration pattern for agent-driven implementation with worktree isolation, TDD discipline, and two-stage review. Referenced by execute-plan, fixit, and bugbash."
+description: "Use when executing implementation plans with independent tasks — orchestration pattern for worktree isolation, TDD discipline, and two-stage review. Referenced by execute-plan, fixit, and bugbash."
 ---
 
 # Agent-Driven Development

@@ -1,6 +1,6 @@
 ---
 name: spec-recommender
-description: "Detect code without spec coverage, infer intent, present options. Works standalone or invoked by ralph-review for spec drift resolution."
+description: "Use when code exists without spec coverage to detect gaps, infer intent, and present options — works standalone or invoked by ralph-review for spec drift resolution"
 ---
 
 # Spec Recommender

@@ -1,7 +1,7 @@
 ---
 name: close-worktree
 allowed-tools: Bash(git *), Bash(cd *), Bash(ls *), AskUserQuestion
-description: Close a git worktree and merge it back to the main branch. Asks whether to merge or squash.
+description: Use when done working in a git worktree and ready to merge it back to the main branch — asks whether to merge or squash
 ---
 
 ## Context

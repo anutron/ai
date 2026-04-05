@@ -1,6 +1,6 @@
 ---
 name: write-skill
-description: Create or improve a Claude Code skill with best practices for structure, dynamic context, and safety
+description: Use when creating a new skill or improving an existing one — applies best practices for structure, dynamic context, and safety
 ---
 
 # Skill Author

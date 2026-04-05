@@ -1,6 +1,6 @@
 ---
 name: bugbash
-description: Interactive QA session — report bugs conversationally, agents fix them in parallel using agent-driven-development pattern.
+description: Use when the user wants to do a QA session or report multiple bugs — interactive session where bugs are reported conversationally and agents fix them in parallel
 ---
 
 # Bug Bash

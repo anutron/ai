@@ -1,6 +1,6 @@
 ---
 name: spec-writer
-description: "Write properly formatted spec text. Single source of truth for the SPEC format. Takes approved intent and a target file, produces spec text."
+description: "Use whenever writing or updating spec text — single source of truth for the SPEC format. Takes approved intent and a target file, produces spec text."
 ---
 
 # Spec Writer

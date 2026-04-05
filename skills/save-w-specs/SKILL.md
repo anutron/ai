@@ -1,6 +1,6 @@
 ---
 name: save-w-specs
-description: Save progress — commit completed work. Spec-aware: in projects with a .specs file, verifies specs were updated alongside behavioral changes (but never derives specs from code).
+description: Use when ready to commit completed work — saves progress and verifies specs were updated alongside behavioral changes in spec-driven projects (but never derives specs from code)
 ---
 
 # Save Progress

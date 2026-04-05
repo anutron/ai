@@ -1,6 +1,6 @@
 ---
 name: fixit
-description: Fire-and-forget bug fix — backgrounds an agent in a worktree to fix a bug and merge it back without breaking your stride.
+description: Use when the user reports a bug or issue that can be fixed without blocking their current work — backgrounds an agent in a worktree to fix and merge back without breaking stride
 ---
 
 # Fixit

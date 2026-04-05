@@ -1,6 +1,6 @@
 ---
 name: execute-plan
-description: "Execute a plan with agent-driven development — worktree isolation, TDD discipline, two-stage review, and native Task dependencies for parallel execution."
+description: "Use when you have an approved plan ready to implement — executes with agent-driven development, worktree isolation, TDD discipline, two-stage review, and native Task dependencies for parallel execution"
 user-invocable: true
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: pr-dashboard
-description: Show open PRs, review requests, and recently closed PRs with age and status. Supports team members.
+description: Use when the user asks about PR status, open PRs, review requests, or wants a PR overview — shows open PRs, review requests, and recently closed PRs with age and status
 allowed-tools: Bash
 user-invocable: true
 ---

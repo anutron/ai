@@ -1,6 +1,6 @@
 ---
 name: review
-description: Quick code review shorthand. Reviews current changes or a PR number.
+description: Use when the user asks to review code, review current changes, or review a PR number
 ---
 
 # Code Review

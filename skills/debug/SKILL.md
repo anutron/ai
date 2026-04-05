@@ -1,6 +1,6 @@
 ---
 name: debug
-description: Multi-agent competing hypotheses debugging
+description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes — multi-agent competing hypotheses debugging
 ---
 
 # Competing Hypotheses Debugging
