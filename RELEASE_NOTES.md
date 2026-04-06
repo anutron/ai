@@ -1,3 +1,14 @@
+## v1.4.0 — 2026-04-06
+
+Worktree awareness for ralph-review and fixit.
+
+**Updated skills**
+- `ralph-review` — detects when running inside a git worktree and resolves `$MAIN_REPO` for all durable artifacts (reviews, fix worktrees, gitignore). Prevents nested worktree creation.
+- `fixit` — same worktree awareness: creates fix worktrees relative to main repo root, not the current worktree.
+- `spec-audit` — adds previous audit completeness check, audit directory versioning, and note on behavioral file counting.
+
+---
+
 ## v1.3.0 — 2026-04-05
 
 Spec-audit subagent enforcement.

@@ -27,6 +27,8 @@ User-provided arguments always win over auto-detection. If auto-detection is amb
 - Default branch ref: !`git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | grep -v '^origin/HEAD$' | head -1`
 - Git status: !`git status --short`
 - Spec-aware project: !`test -f .specs && cat .specs || echo "no .specs file"`
+- Worktree info: !`git rev-parse --show-toplevel && echo "---" && git worktree list --porcelain 2>/dev/null | head -20`
+- Main repo root: !`git worktree list --porcelain 2>/dev/null | head -1 | sed 's/^worktree //'`
 - Project type: !`find . -maxdepth 1 \( -name go.mod -o -name Gemfile -o -name package.json -o -name Cargo.toml -o -name pyproject.toml \) 2>/dev/null | head -5`
 - Test framework: !`find . -maxdepth 4 -name "*_test.*" -o -name "*.test.*" -o -name "*_spec.*" 2>/dev/null | head -10`
 - Recent spec changes: !`git diff --name-only HEAD~10..HEAD -- specs/ 2>/dev/null | head -10`
@@ -118,6 +120,20 @@ ELSE                → tier = "conservative" (bugs/security/lint only)
 
 ### Pre-Loop Setup
 
+**Resolve the main repo root.** Ralph may be invoked from inside a git worktree. All durable artifacts (reviews, worktrees for fixes) must be written relative to the main repo, not the current worktree.
+
+```bash
+# MAIN_REPO is the root of the primary worktree (the original clone).
+# CWD may be a secondary worktree — never nest worktrees inside worktrees.
+MAIN_REPO=$(git worktree list --porcelain 2>/dev/null | head -1 | sed 's/^worktree //')
+IS_WORKTREE=false
+if [ "$(git rev-parse --show-toplevel)" != "$MAIN_REPO" ]; then
+  IS_WORKTREE=true
+fi
+```
+
+If `IS_WORKTREE` is true, all paths for `.claude/reviews/`, `.claude/worktrees/`, and `.gitignore` edits use `$MAIN_REPO` as the base — not the CWD. Git operations (diff, log, commit) still run in the CWD worktree as normal.
+
 Record the starting point so ralph's own changes can be isolated later:
 
 ```bash
@@ -127,10 +143,10 @@ PRE_RALPH_SHA=$(git rev-parse HEAD)
 Ensure the reviews directory exists and is gitignored:
 
 ```bash
-mkdir -p .claude/reviews
-# Add to .gitignore if not already covered
-if ! git check-ignore -q .claude/reviews 2>/dev/null; then
-  echo ".claude/reviews/" >> .gitignore
+mkdir -p "$MAIN_REPO/.claude/reviews"
+# Add to .gitignore if not already covered (check in main repo)
+if ! git check-ignore -q "$MAIN_REPO/.claude/reviews" 2>/dev/null; then
+  echo ".claude/reviews/" >> "$MAIN_REPO/.gitignore"
 fi
 ```
 
@@ -142,6 +158,8 @@ Ralph-review starting:
 - Source of truth: {spec path | plan path | "conservative mode"}
 - Confidence tier: {spec | plan | conservative}
 - Pre-ralph SHA: {sha}
+- Running in worktree: {yes — $CWD | no}
+- Main repo: {$MAIN_REPO}
 ```
 
 ---
@@ -527,10 +545,10 @@ This keeps the audit as the single durable record of what was found and what was
 ### Report File
 
 ```bash
-mkdir -p .claude/reviews/$(date +%Y-%m-%d)
+mkdir -p "$MAIN_REPO/.claude/reviews/$(date +%Y-%m-%d)"
 ```
 
-Write the report to `.claude/reviews/YYYY-MM-DD/ralph-review-report.md` AND display it in the terminal.
+Write the report to `$MAIN_REPO/.claude/reviews/YYYY-MM-DD/ralph-review-report.md` AND display it in the terminal. Always use the main repo root for reviews — never write them inside a worktree.
 
 ### Report Template
 
@@ -639,16 +657,16 @@ Each fix follows the same process as `/fixit` — worktree isolation, spec-first
 
 **Step 1: Triage.** Run up to 3 Glob/Grep calls (paths only) to locate likely files. Do not read source code.
 
-**Step 2: Create worktree.**
+**Step 2: Create worktree.** Always create worktrees relative to `$MAIN_REPO`, never inside the current worktree.
 
 ```bash
 SLUG="ralph-fix-<short-slug>"
-git worktree add -b "$SLUG" ".claude/worktrees/$SLUG" HEAD
+git worktree add -b "$SLUG" "$MAIN_REPO/.claude/worktrees/$SLUG" HEAD
 ```
 
 If the branch already exists, clean up first:
 ```bash
-git worktree remove ".claude/worktrees/$SLUG" --force 2>/dev/null
+git worktree remove "$MAIN_REPO/.claude/worktrees/$SLUG" --force 2>/dev/null
 git branch -D "$SLUG" 2>/dev/null
 ```
 
@@ -658,7 +676,7 @@ git branch -D "$SLUG" 2>/dev/null
 ## Ralph-Review Fix: <short title>
 
 ### Context
-- Project root: <project root>
+- Main repo root: <$MAIN_REPO>
 - Working directory: <worktree path>
 - Branch: <SLUG>
 

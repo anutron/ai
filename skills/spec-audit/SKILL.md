@@ -31,6 +31,8 @@ Not for codebases with zero specs — that's a backfill task, not an audit.
 - No spec files found in the spec directory → "No spec files found. Write specs first, then audit. Use `/spec-recommender` to get started."
 - Massive imbalance: more than 10x code files vs spec files AND specs appear to be file-organized (1:1 with code files) → Present the ratio and ask: "This project has {N} code files but only {M} specs. An audit would flag almost everything as uncovered. Consider running `/spec-recommender` first to build baseline coverage, then audit. Proceed anyway? (y/n)" **Skip this check if specs are feature-organized** (e.g., organized by area like `specs/core/`, `specs/plugin/`, `specs/builtin/`). Feature-organized specs routinely cover 10-20 code files each, making the raw ratio misleading. Instead, proceed to the mapping phase and assess actual coverage after mapping.
 
+**Note on code file count:** The context section's `find` count may include non-behavioral files (vendored dependencies, generated bundles, prototype HTML). For the imbalance check, use the raw count as a signal but do not block on it if the project uses feature-organized specs. The inventory phase (Phase 1a) establishes the true count of behavioral source files.
+
 ---
 
 ## Phase 0: Incremental Detection
@@ -55,6 +57,10 @@ If no previous audit exists → **full audit**. Skip the rest of Phase 0.
 Read the `commit_sha` field from the previous audit's `inventory.json`.
 
 If the field is missing or empty → **full audit** (legacy audit without SHA tracking).
+
+### Step 3b: Verify previous audit completeness
+
+Check that `mapping.json` exists in the previous audit directory. If it is missing → **full audit** with message: `"Previous audit at {date} is incomplete (no mapping). Running full audit."`
 
 ### Step 4: Compute changed files
 
@@ -121,6 +127,8 @@ Enumerate all code files and spec files. For each code file, extract:
 For each spec file, extract:
 - File path
 - Section headings (each heading is a potential behavior unit)
+
+**Audit directory naming:** Use `specs/audits/{date}/` for the first audit on a given day. If an audit directory for today already exists, append a version suffix: `{date}_v2`, `{date}_v3`, etc. Never overwrite a previous audit — preserve all results for delta comparison.
 
 Write to `specs/audits/{date}/inventory.json`:
 

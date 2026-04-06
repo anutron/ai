@@ -17,6 +17,7 @@ If no arguments provided, reply: `Usage: /fixit <describe the bug>` and stop.
 
 - Current branch: !`git branch --show-current`
 - Project root: !`pwd`
+- Main repo root: !`git worktree list --porcelain 2>/dev/null | head -1 | sed 's/^worktree //'`
 - Spec-aware project: !`test -f .specs && cat .specs || echo "no .specs file"`
 
 ---
@@ -33,15 +34,19 @@ You are a dispatcher, not a debugger. Do NOT read source code or investigate.
 
 ### 2. Create Worktree
 
+Resolve the main repo root first — fixit may be invoked from inside a worktree. Worktrees must be created relative to the main repo, never nested inside another worktree.
+
 ```bash
+MAIN_REPO=$(git worktree list --porcelain 2>/dev/null | head -1 | sed 's/^worktree //')
+
 # Pick a short slug from the bug description
 SLUG="fixit-<short-slug>"
-git worktree add -b "$SLUG" ".claude/worktrees/$SLUG" HEAD
+git worktree add -b "$SLUG" "$MAIN_REPO/.claude/worktrees/$SLUG" HEAD
 ```
 
 If the branch already exists, clean up first:
 ```bash
-git worktree remove ".claude/worktrees/$SLUG" --force 2>/dev/null
+git worktree remove "$MAIN_REPO/.claude/worktrees/$SLUG" --force 2>/dev/null
 git branch -D "$SLUG" 2>/dev/null
 ```
 
@@ -53,7 +58,7 @@ Use the `Agent` tool with `run_in_background: true` and `mode: "bypassPermission
 ## Bug Fix: <title>
 
 ### Context
-- Project root: <project root>
+- Main repo root: <$MAIN_REPO>
 - Working directory: <worktree path>
 - Branch: <SLUG>
 
@@ -141,7 +146,7 @@ git merge <SLUG> --no-edit
 
 **If merge succeeds:**
 ```bash
-git worktree remove ".claude/worktrees/$SLUG" --force
+git worktree remove "$MAIN_REPO/.claude/worktrees/$SLUG" --force
 git branch -D "$SLUG"
 ```
 
@@ -160,14 +165,14 @@ git merge --abort
 Report to user:
 ```
 ⚠️ Fixit conflict: <short title>
-  Worktree preserved at .claude/worktrees/<SLUG> for manual resolution.
+  Worktree preserved at $MAIN_REPO/.claude/worktrees/<SLUG> for manual resolution.
 ```
 
 ### Failure Path
 
 If the agent couldn't fix it:
 ```bash
-git worktree remove ".claude/worktrees/$SLUG" --force
+git worktree remove "$MAIN_REPO/.claude/worktrees/$SLUG" --force
 git branch -D "$SLUG"
 ```
 
