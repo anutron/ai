@@ -146,7 +146,7 @@ Fix issues inline. No need to re-review -- just fix and move on.
 
 Options:
 - **No, proceed to planning** (default) -- move straight to Phase 2
-- **Yes, let me review** -- wait for the user's feedback, revise if needed, then proceed
+- **Yes, let me review** -- launch `/plannotator-annotate` on the brainstorm doc so the user can review with inline annotations. Address annotations (rewrite sections for questions, discuss only if explicitly requested), then re-open in Plannotator until approved. Then proceed to Phase 2.
 
 ---
 
@@ -168,6 +168,7 @@ Structure:
 # <Feature Name> -- Implementation Plan
 
 **Goal:** <Restated from the brainstorm>
+**Design doc:** `<path to brainstorm.md>` -- Read this first. It contains the architecture, behavioral specs, data flow, and design decisions that inform every stage below. This plan describes execution order; the design doc describes what to build and why.
 
 **Assumptions and boundaries:**
 - What's in scope
@@ -210,6 +211,8 @@ Key principles for stages:
 
 Commit the plan immediately after writing.
 
+**Validate design doc reference:** Re-read the written plan and confirm it contains a `**Design doc:**` line pointing to the brainstorm doc path. If missing, add it before committing. This reference is how `/execute-plan` and its agents find the design context — without it, agents only see execution order and miss the architecture and behavioral decisions.
+
 ## Step 3: Present plan for review
 
 This is the one real review gate in the entire workflow. The user reads the strategy and approves or requests changes. Present the plan and wait for approval.
@@ -225,22 +228,6 @@ Options:
 - **Execute in this session** -- run `/execute-plan` right here without clearing context (good for small plans or when current context is valuable)
 
 For clipboard: `echo -n "/execute-plan <plan-path>" | pbcopy`
-
----
-
-# Post-Execution Quality Gates
-
-After `/execute-plan` finishes and reports its summary, offer quality gates via `AskUserQuestion`:
-
-> "Implementation complete. Want to run quality checks?"
-
-Options:
-- **Both** (recommended) -- run `/ralph-review` and `/spec-audit` in parallel
-- **Ralph-review only** -- autonomous review loop comparing implementation against specs
-- **Spec-audit only** -- audit spec coverage, find behavioral gaps
-- **Done** -- skip quality gates
-
-These are token-heavy, so they are opt-in. But offering them at the natural completion point makes them easy to reach.
 
 ---
 

@@ -1,3 +1,21 @@
+## v1.2.0 — 2026-04-05
+
+Session topic enforcement and skill updates.
+
+**New: Session topic enforcement system**
+- `/set-topic` gains `--initial` flag — no-ops if topic already set, preventing Claude from overwriting the topic
+- `/set-topic` now validates that the `remind-session-topic.sh` hook is installed and warns if missing
+- New `Stop` hook (`remind-session-topic.sh`) reminds Claude to set the topic each turn, escalating after 5 turns
+- Simplified `055-session-topics` rule snippet — direct instructions, no judgment calls
+- README now includes full [Session Topics](#session-topics) setup guide
+
+**Updated skills**
+- `ralph-review` — replaced `/fixit` references with explicit background Agent dispatch pattern and prompt template
+- `brainstorm` — upstream improvements
+- `execute-plan` — upstream improvements
+
+---
+
 ## v1.1.2 — 2026-04-05
 
 Added `RELEASE_NOTES.md` changelog. The `/publish-skills` workflow now prepends release notes to this file on every publish.

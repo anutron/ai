@@ -467,15 +467,17 @@ When the user chooses to address spec drift (see Phase 3):
 
 Present each drift item one at a time via `AskUserQuestion`. For each item, show the draft recommendation and ask the user to approve, edit, or reject.
 
+Same background dispatch pattern as Questions — handle the user's response and present the next drift item in the same response.
+
 After the user responds to each item:
 
 1. **Update the spec inline** — spec text changes are fast (just writing markdown), so do them in the main thread. Use `/spec-recommender` → `/spec-writer` if available, otherwise write directly.
-2. **If code changes are needed** to match the updated spec, dispatch via `/fixit` in background.
-3. **Move to the next drift item immediately** — don't wait for the fixit to complete.
+2. **If code changes are needed** to match the updated spec, dispatch a background fix agent using the same process described in Phase 3 ("Dispatching a Background Fix Agent"). Print "Fix dispatched in background. Moving to the next drift item."
+3. **Show the next drift item immediately** in the same response — don't wait for the fix to complete.
 
-Apply the same conflict avoidance rule as questions: if two fixits would touch the same files, serialize them.
+Apply the same conflict avoidance rule as questions: if two fixes would touch the same files, serialize them.
 
-After all drift items are addressed and any in-flight fixits complete, offer: "Specs updated. Restart ralph-review to validate against updated specs? (y/n)"
+After all drift items are addressed and any in-flight fixes complete, offer: "Specs updated. Restart ralph-review to validate against updated specs? (y/n)"
 
 ---
 
@@ -619,18 +621,107 @@ the tradeoffs. Take a position.}
 4. Defer — park this for a future session
 ```
 
-After the user answers, dispatch the work in the background and immediately present the next question. The user's attention is the bottleneck — don't make them watch serial implementation.
+After the user answers each item, dispatch any work in the background and present the next question in the same response. Every response that handles a user answer contains both:
+1. The background dispatch (Agent tool call with `run_in_background: true`)
+2. The next `AskUserQuestion` for the next item
 
 **Dispatching by answer type:**
 
-- **Fix it** → Use `/fixit` to background the fix in a worktree. Compose the fixit description from the finding + the user's answer. Move to the next question immediately.
+- **Fix code** → Dispatch a background fix agent following fixit's process (see dispatch template below). Print "Fix dispatched in background. Moving to the next item." then immediately show the next question.
+- **Update spec** → Update the spec file inline in the main thread (just markdown, fast). If code changes are also needed to match the updated spec, dispatch a background fix agent. Move to next item immediately.
 - **Ignore** → Offer to add an `// expected:` comment to the relevant line(s) so future reviews don't re-report the same finding. Show the proposed annotation for approval (e.g., `// expected: broadcastMessage ignores handled bool`). If the user approves, add the comment and commit it. If they decline, skip silently. Either way, move to next finding.
-- **Add to spec** → Update the spec file inline (this is fast — just text), then `/fixit` the implementation in background if code changes are needed. Move to the next question immediately.
+- **Add to spec** → Update the spec file inline (this is fast — just text), then dispatch a background fix agent if code changes are needed. Move to the next question immediately.
 - **Defer** → Create a todo marker in `specs/todo/` (see "Todo Markers" below). Move to the next question immediately.
 
-**Conflict avoidance:** Before dispatching a `/fixit`, check if a previously dispatched fixit from this session touches the same file(s). If so, wait for that fixit to complete before dispatching the new one — concurrent worktrees editing the same files will cause merge conflicts. Independent files can run in parallel.
+### Dispatching a Background Fix Agent
 
-**After all questions are answered:** Wait for any in-flight fixits to complete and report their results. Then re-present the remaining review options.
+Each fix follows the same process as `/fixit` — worktree isolation, spec-first ordering, agent-driven-development, two-stage review, and proper merge/cleanup. Read `skills/fixit/SKILL.md` for the full pattern.
+
+**Step 1: Triage.** Run up to 3 Glob/Grep calls (paths only) to locate likely files. Do not read source code.
+
+**Step 2: Create worktree.**
+
+```bash
+SLUG="ralph-fix-<short-slug>"
+git worktree add -b "$SLUG" ".claude/worktrees/$SLUG" HEAD
+```
+
+If the branch already exists, clean up first:
+```bash
+git worktree remove ".claude/worktrees/$SLUG" --force 2>/dev/null
+git branch -D "$SLUG" 2>/dev/null
+```
+
+**Step 3: Dispatch.** Use the Agent tool with `run_in_background: true` and `mode: "bypassPermissions"`:
+
+````
+## Ralph-Review Fix: <short title>
+
+### Context
+- Project root: <project root>
+- Working directory: <worktree path>
+- Branch: <SLUG>
+
+### Issue
+<finding description — what's wrong, what should change, and why>
+
+### Affected Files
+<file paths and line numbers from the finding>
+
+### Spec Context
+<relevant spec section, or "No spec context">
+
+### User Direction
+<what the user chose — "fix code", "update spec", their specific instructions>
+
+### Spec-Aware Project
+<if .specs file exists>
+This project uses specs. The spec directory is: <dir from .specs file, default "specs">
+
+**You MUST follow spec-first order:**
+1. Find the relevant spec in the specs directory
+2. Update the spec to reflect the expected behavior
+3. Write/update a test that validates the spec
+4. Implement the fix to pass the test
+5. Run all tests
+6. Commit with message: "ralph-review: <short description>"
+
+Include the spec file in your commit.
+</if .specs file exists>
+<if no .specs file>
+No spec management required.
+</if>
+
+### Debugging References
+Read these before investigating:
+- `skills/debug/root-cause-tracing.md` — systematic hypothesis-driven debugging
+- `skills/debug/defense-in-depth.md` — making fixes robust against related failures
+
+### Instructions
+Implementation follows agent-driven-development pattern for a single task. Read `skills/agent-driven-development/SKILL.md`.
+
+1. Explore the codebase to understand the problem
+2. If spec-aware, follow spec-first order above. Otherwise implement directly.
+3. Follow TDD discipline per `skills/test-driven-development/SKILL.md`
+4. Self-review per `skills/verification-before-completion/SKILL.md`
+5. Run tests
+6. Commit with message: "ralph-review: <short description>"
+7. Report status: DONE | DONE_WITH_CONCERNS | BLOCKED
+
+### Constraints
+- Work ONLY in your worktree directory
+- Follow existing codebase patterns
+- Keep the fix minimal — don't refactor surrounding code
+- If tests fail after your fix, investigate and resolve
+````
+
+**Step 4: Print one line and move on** — do not wait for the agent.
+
+**On agent completion:** Follow the same completion flow as `/fixit` — two-stage review (spec reviewer → code quality reviewer), merge to original branch, worktree cleanup. Report result to user when done.
+
+**Conflict avoidance:** Before dispatching, check if a previously dispatched fix from this session touches the same file(s). If so, wait for that fix to complete before dispatching the new one — concurrent worktrees editing the same files will cause merge conflicts. Independent files can run in parallel.
+
+**After all items are answered:** Wait for any in-flight fixes to complete and report their results. Then re-present the remaining review options.
 
 ### Option 3: Skipped Findings
 

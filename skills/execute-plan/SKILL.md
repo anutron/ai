@@ -38,12 +38,14 @@ This ensures execution starts with a fresh context window. Do not proceed with e
    - If `$ARGUMENTS` is a URL, fetch it with WebFetch
    - If `$ARGUMENTS` is a plan name without path, look in `~/Personal/AI-RON/specs/plans/`
 
-2. **Parse the plan into stages.** Plans typically have numbered sections, phases, or steps. Extract:
+2. **Locate the design doc.** Plans should reference a design/brainstorm doc at the top (in a `**Design doc:**` field). If present, read it — this is the design source of truth that agents need alongside the plan. If no reference exists, check the plan's parent directory for `brainstorm.md` as a fallback. If neither is found, proceed without it — the plan may be self-contained.
+
+3. **Parse the plan into stages.** Plans typically have numbered sections, phases, or steps. Extract:
    - **Stages**: Ordered list of discrete work chunks
    - **Dependencies**: Which stages depend on others (explicit "depends on stage N" or implicit from ordering)
    - **Scope**: Files, directories, and repos each stage touches
 
-3. **Build a dependency graph.** For each stage, determine:
+4. **Build a dependency graph.** For each stage, determine:
    - Which other stages must complete first (blockers)
    - Which stages are independent and can run in parallel
    - Dependency signals: explicit mentions ("after stage 2"), shared file scope, or logical ordering (tests before integration)
@@ -68,6 +70,7 @@ Present a brief execution summary:
 ## Execution Plan
 
 Loaded: {plan name/path}
+Design doc: {path from plan header, or "none"}
 Stages: {N}
 
 1. {Stage name} — {1-line description}
@@ -97,6 +100,7 @@ For each unblocked task (or group of simultaneously unblocked tasks):
 Spawn a fresh agent in the worktree following the agent-driven-development loop. The agent prompt includes:
 
 - The full stage text from the plan
+- **The design doc contents** (if located in Phase 0) — the plan describes execution order; the design doc describes *what to build and why*. Agents need both to make good implementation decisions.
 - File scope (what to read, what to create/modify)
 - Done criteria extracted from the plan
 - Reference to TDD discipline (`skills/test-driven-development/SKILL.md`)
@@ -176,6 +180,22 @@ Produce one final report after all tasks complete:
 
 ---
 
+## Phase 4: Quality Gates
+
+After presenting the summary report, offer quality checks via `AskUserQuestion`:
+
+> "Implementation complete. Want to run quality checks?"
+
+Options:
+- **Both** (recommended) — run `/ralph-review` and `/spec-audit` in parallel
+- **Ralph-review only** — autonomous review loop comparing implementation against specs
+- **Spec-audit only** — audit spec coverage, find behavioral gaps
+- **Done** — skip quality gates
+
+These are token-heavy, so they are opt-in. But offering them at the natural completion point makes them easy to reach.
+
+---
+
 ## Autonomous Execution
 
 Once execution starts (phases 1-3), the controller never asks the user anything. Handle all statuses internally:
@@ -189,7 +209,7 @@ Once execution starts (phases 1-3), the controller never asks the user anything.
   3. Break the task into smaller pieces
   4. Park the task and note it in the final report
 
-One summary at the end. No mid-execution interruptions.
+One summary at the end. No mid-execution interruptions — except the quality gate offer after the summary (see Phase 4).
 
 ## Model Selection
 
