@@ -66,6 +66,26 @@ for f in "${BIN_PUBLISH[@]}"; do
   fi
 done
 
+# Copy docs (blueprints and reference docs)
+DOCS_SOURCE="$HOME/Personal/AI-RON/docs"
+DOCS_DEST="$(cd "$(dirname "$0")/.." && pwd)/docs"
+DOCS_PUBLISH=(
+  stack-spectrum.md
+  thanx-dev-system.md
+)
+
+mkdir -p "$DOCS_DEST"
+docs_copied=0
+for f in "${DOCS_PUBLISH[@]}"; do
+  if [ -f "$DOCS_SOURCE/$f" ]; then
+    cp "$DOCS_SOURCE/$f" "$DOCS_DEST/$f"
+    echo "  copy: docs/$f"
+    docs_copied=$((docs_copied + 1))
+  else
+    echo "  MISSING: docs/$f"
+  fi
+done
+
 # Copy claude-rules snippets (global only — project snippets are personal)
 RULES_SOURCE="$HOME/Personal/AI-RON/claude-rules/snippets/global"
 RULES_DEST="$(cd "$(dirname "$0")/.." && pwd)/claude-rules/snippets/global"
@@ -100,4 +120,4 @@ for f in "${HOOKS_PUBLISH[@]}"; do
 done
 
 echo ""
-echo "Published $copied skills ($skipped excluded), $rules_copied rules, $bin_copied bin files, $hooks_copied hooks"
+echo "Published $copied skills ($skipped excluded), $docs_copied docs, $rules_copied rules, $bin_copied bin files, $hooks_copied hooks"

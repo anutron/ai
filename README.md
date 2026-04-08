@@ -115,6 +115,7 @@ This works well for small-to-medium codebases. For large-scale applications, you
 
 | Skill | Description |
 |-------|-------------|
+| [kickoff](skills/kickoff/SKILL.md) | Use when starting a brand new project from scratch -- runs discovery, picks a tech stack tier, then hands off to brainstorm and build |
 | [brainstorm](skills/brainstorm/SKILL.md) | You MUST use this before any creative work -- creating features, building components, adding functionality, or modifying behavior |
 | [execute-plan](skills/execute-plan/SKILL.md) | Use when you have an approved plan ready to implement -- agent-driven development, worktree isolation, TDD, two-stage review |
 | [fixit](skills/fixit/SKILL.md) | Use when the user reports a bug that can be fixed without blocking their current work -- backgrounds an agent in a worktree |
@@ -178,7 +179,7 @@ See [claude-rules/README.md](claude-rules/README.md) for setup.
 | `010-plan-formatting` | Markdown formatting requirements for structured output |
 | `020-interaction-prefs` | Question-by-question and step-by-step interaction patterns |
 | `040-plan-execution-handoff` | What to do after plan approval |
-| `040-tech-stack` | Standard tech stack for new applications |
+| `040-tech-stack` | Tech stack spectrum -- four tiers from lightweight to deployable (references [stack-spectrum.md](docs/stack-spectrum.md)) |
 | `050-git-workflow` | Commit conventions and pre-commit hooks |
 | `052-worktree-location` | Place git worktrees in `.claude/worktree/` within spec-driven projects |
 | `055-session-topics` | Set status line topics for session identification |

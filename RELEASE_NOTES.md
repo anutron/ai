@@ -1,3 +1,20 @@
+## v1.6.0 — 2026-04-08
+
+New project creation workflow and tech stack blueprints.
+
+**New skill**
+- `/kickoff` — takes a user from "I have an idea" to a running first version. Runs a focused discovery interview (problem-first, not solution-first), assesses technical experience, recommends the lightest viable stack tier, then hands off to `/brainstorm` for design and build. Actively protects non-technical users from deploying to the internet.
+
+**New docs**
+- `docs/stack-spectrum.md` — four-tier tech stack blueprint: lightweight (HTML/CSS/JS prototypes), personal (Next.js + Prisma + MySQL), distributed (personal + Supabase), deployable (Rails + Next.js monorepo). Decision criteria table, upgrade triggers, and full scaffolding checklists for each tier.
+- `docs/thanx-dev-system.md` — detailed reference for the deployable tier (1100 lines covering Rails, Grape, Next.js, DevBox, Docker, CI/CD, Terraform, auth).
+
+**Updated**
+- `publish.sh` — now syncs `docs/` directory (stack blueprints) alongside skills
+- `040-tech-stack` rule — references the spectrum instead of embedding a monolithic Thanx stack description
+
+---
+
 ## v1.5.0 — 2026-04-08
 
 Portability fixes and interview/brainstorm handoffs.
