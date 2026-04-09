@@ -469,7 +469,7 @@ DATABASE_URL="mysql://root@localhost:3306/<app-name>_dev"
 - [ ] Create `src/__tests__/` directory structure
 - [ ] Add `.specs` file (if spec-driven)
 - [ ] Write CLAUDE.md with project-specific instructions
-- [ ] Install pre-commit hook: `ln -sf ~/Personal/AI-RON/scripts/spec-check-hook.sh .git/hooks/pre-commit`
+- [ ] Install pre-commit hook: `cp scripts/spec-check-hook.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit`
 
 ---
 
