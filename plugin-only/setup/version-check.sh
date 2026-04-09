@@ -7,7 +7,7 @@ set -euo pipefail
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-}"
 [ -z "$PLUGIN_ROOT" ] && exit 0
 
-STAMP="$HOME/.claude/.claude-skills-version"
+STAMP="$HOME/.claude/.anutron-claude-skills-version"
 [ -f "$STAMP" ] || exit 0
 
 installed=$(cat "$STAMP")

@@ -92,7 +92,7 @@ After either mode, stamp the installed version so version-check.sh can detect up
 ```bash
 PLUGIN_ROOT="<detected root>"
 VERSION=$(grep -o '"version": *"[^"]*"' "$PLUGIN_ROOT/.claude-plugin/plugin.json" | head -1 | grep -o '[0-9][0-9.]*')
-echo "$VERSION" > ~/.claude/.claude-skills-version
+echo "$VERSION" > ~/.claude/.anutron-claude-skills-version
 ```
 
 ### Step 3: Terminal features
