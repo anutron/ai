@@ -7,6 +7,57 @@ Two things in one repo:
 
 Steal what's useful. Most people point Claude at this repo and cherry-pick what fits their workflow.
 
+## Quick start
+
+**1. Clone the repo:**
+
+```bash
+git clone https://github.com/anutron/claude-skills.git ~/claude-skills
+cd ~/claude-skills
+```
+
+**2. Install the rules** (compiles snippets into your `~/.claude/CLAUDE.md`):
+
+```bash
+./claude-rules/compile.sh link     # symlinks CLAUDE.md to compiled output
+./claude-rules/compile.sh compile  # builds from snippets
+```
+
+If you already have a `~/.claude/CLAUDE.md`, it gets backed up with a `.bak.YYYYMMDD` suffix before linking. See [claude-rules/README.md](claude-rules/README.md) for customization.
+
+**3. Promote skills globally** — open Claude Code in this repo and run:
+
+```
+/promote
+```
+
+This compares the skills in `skills/` against `~/.claude/skills/`, classifies each one, and symlinks the ones you choose. After promotion, skills are available in every project. Updates are a `git pull` away.
+
+**4. (Optional) Install hooks:**
+
+```bash
+# Session topic reminders
+cp hooks/remind-session-topic.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/remind-session-topic.sh
+
+# Skill usage logging
+cp hooks/log-skill-use.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/log-skill-use.sh
+```
+
+Then register them in `~/.claude/settings.json` — see the [Session Topics](#session-topics) section for the hooks config format.
+
+**5. (Optional) Install the status line:**
+
+```bash
+cp bin/statusline.sh ~/.claude/
+chmod +x ~/.claude/statusline.sh
+```
+
+That's it. You now have rules, skills, and (optionally) hooks working across all your projects.
+
+---
+
 ## Spec-Driven Development
 
 The core idea: **specs describe what you're building before you build it.** If the spec and the code disagree, the code has a bug.
