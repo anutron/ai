@@ -1,3 +1,15 @@
+## v1.11.0 — 2026-04-09
+
+Adoption cleanup and version-check simplification.
+
+**Changed**
+- Removed all AI-RON references from published skills and docs — skills now use relative paths and generic language
+- Version check simplified to a single version-string comparison (installed stamp vs plugin.json) instead of file hashes and timestamps
+- Version stamp renamed to `.anutron-claude-skills-version` to avoid ambiguity
+- Removed `publish.sh` from public repo (internal-only sync tool)
+
+---
+
 ## v1.10.0 — 2026-04-09
 
 Plugin support and interactive setup wizard.
