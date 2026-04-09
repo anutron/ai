@@ -42,16 +42,20 @@ The compiled files are symlinked to their target locations, so changes appear im
    ```bash
    ./claude-rules/compile.sh link
    ```
-   This creates symlinks:
-   - `~/.claude/CLAUDE.md` → `claude-rules/dist/global.md`
-   - `<project>/CLAUDE.md` → `claude-rules/dist/project.md`
 
-   If existing files are found, they're backed up with a `.bak.YYYYMMDD` suffix first.
+   If you already have a `~/.claude/CLAUDE.md`, the script asks how you want to handle it:
+
+   - **Replace** — backs up your file (`.bak.YYYYMMDD`), then symlinks to the compiled output. Your existing content is replaced entirely.
+   - **Inject** — keeps your file intact and appends a managed section between `<!-- BEGIN/END claude-rules -->` markers. Only the managed section updates on recompile. Your own rules stay untouched.
+
+   If no existing file is found, it symlinks directly (nothing to preserve).
 
 3. **Compile:**
    ```bash
    ./claude-rules/compile.sh compile
    ```
+
+   In inject mode, `compile` automatically updates the managed section in your CLAUDE.md files.
 
 ## Usage
 

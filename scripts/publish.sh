@@ -81,9 +81,11 @@ for f in "${DOCS_PUBLISH[@]}"; do
   fi
 done
 
-# Copy claude-rules snippets (global only — project snippets are personal)
-RULES_SOURCE="$HOME/Personal/AI-RON/claude-rules/snippets/global"
-RULES_DEST="$(cd "$(dirname "$0")/.." && pwd)/claude-rules/snippets/global"
+# Copy claude-rules (snippets + compile.sh + variables.env; README is maintained in claude-skills)
+RULES_ROOT="$HOME/Personal/AI-RON/claude-rules"
+RULES_DEST_ROOT="$(cd "$(dirname "$0")/.." && pwd)/claude-rules"
+RULES_SOURCE="$RULES_ROOT/snippets/global"
+RULES_DEST="$RULES_DEST_ROOT/snippets/global"
 
 rm -rf "$RULES_DEST"
 mkdir -p "$RULES_DEST"
@@ -92,7 +94,11 @@ for f in "$RULES_SOURCE"/*.md; do
   cp "$f" "$RULES_DEST/$(basename "$f")"
   rules_copied=$((rules_copied + 1))
 done
-echo "  copy: $rules_copied rule snippets"
+
+# Copy compile.sh and variables.env
+cp "$RULES_ROOT/compile.sh" "$RULES_DEST_ROOT/compile.sh"
+cp "$RULES_ROOT/variables.env" "$RULES_DEST_ROOT/variables.env"
+echo "  copy: $rules_copied rule snippets + compile.sh + variables.env"
 
 # Copy hooks
 HOOKS_SOURCE="$HOME/Personal/AI-RON/scripts"

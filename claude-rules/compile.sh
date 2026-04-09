@@ -16,9 +16,57 @@ DIST="$RULES_DIR/dist"
 CHECKSUMS="$DIST/.checksums"
 TARGETS_FILE="$DIST/.targets"
 
-# Where the compiled files get symlinked to
+# Where the compiled files get symlinked/injected to
 GLOBAL_TARGET="$HOME/.claude/CLAUDE.md"
 PROJECT_TARGET="$RULES_DIR/../CLAUDE.md"
+
+# Inject mode markers
+MARKER_BEGIN="<!-- BEGIN claude-rules managed section — do not edit between these markers -->"
+MARKER_END="<!-- END claude-rules managed section -->"
+
+# Mode files track symlink vs inject per target
+MODE_GLOBAL="$DIST/.mode-global"
+MODE_PROJECT="$DIST/.mode-project"
+
+get_mode() {
+  local mode_file="$1"
+  if [ -f "$mode_file" ]; then
+    cat "$mode_file"
+  else
+    echo "symlink"
+  fi
+}
+
+# Replace the managed section between markers, or append if no markers exist
+inject_section() {
+  local target="$1" content_file="$2"
+
+  if grep -qF "$MARKER_BEGIN" "$target" 2>/dev/null; then
+    # Replace existing managed section
+    local tmp
+    tmp=$(mktemp)
+    awk -v begin="$MARKER_BEGIN" -v end="$MARKER_END" -v cfile="$content_file" '
+      $0 == begin {
+        print
+        while ((getline line < cfile) > 0) print line
+        skip = 1
+        next
+      }
+      skip && $0 == end {
+        print
+        skip = 0
+        next
+      }
+      !skip { print }
+    ' "$target" > "$tmp"
+    mv "$tmp" "$target"
+  else
+    # First injection — append markers and content
+    printf '\n%s\n' "$MARKER_BEGIN" >> "$target"
+    cat "$content_file" >> "$target"
+    printf '%s\n' "$MARKER_END" >> "$target"
+  fi
+}
 
 compile_scope() {
   local scope="$1" header="$2" output="$3"
@@ -84,6 +132,12 @@ $key=$val"
 check_target() {
   local label="$1" target="$2" dist_file="$3"
 
+  # Inject-mode targets are always safe to overwrite (only the managed section changes)
+  local mode_file="$DIST/.mode-${label}"
+  if [ "$(get_mode "$mode_file")" = "inject" ]; then
+    return 0
+  fi
+
   [ -f "$target" ] || return 0
   [ -L "$target" ] || {
     # Target exists but is not a symlink — could be the original file
@@ -111,7 +165,7 @@ check_target() {
     if [ "$label" = "global" ]; then
       compile_scope "global" "# Global Claude Code Instructions" "$tmp"
     else
-      compile_scope "project" "# Project Instructions" "$tmp"
+      compile_scope "project" "# AI Ron - Project Instructions" "$tmp"
     fi
 
     echo "Changes made outside the snippet system:"
@@ -131,6 +185,11 @@ check_target() {
 }
 
 do_status() {
+  echo "Modes:"
+  echo "  global:  $(get_mode "$MODE_GLOBAL")"
+  echo "  project: $(get_mode "$MODE_PROJECT")"
+  echo ""
+
   local dirty=0
   check_target "global" "$GLOBAL_TARGET" "$DIST/global.md" || dirty=1
   check_target "project" "$PROJECT_TARGET" "$DIST/project.md" || dirty=1
@@ -166,56 +225,92 @@ do_compile() {
 
   compile_scope "global" "# Global Claude Code Instructions" "$DIST/global.md"
   resolve_variables "$DIST/global.md"
-  compile_scope "project" "# Project Instructions" "$DIST/project.md"
+  compile_scope "project" "# AI Ron - Project Instructions" "$DIST/project.md"
   resolve_variables "$DIST/project.md"
   save_checksums
 
   # Clean up any pending diff artifacts from previous drift detection
   rm -f "$DIST"/.pending-*.diff
 
+  # Update inject-mode targets
+  if [ "$(get_mode "$MODE_GLOBAL")" = "inject" ] && [ -f "$GLOBAL_TARGET" ]; then
+    inject_section "$GLOBAL_TARGET" "$DIST/global.md"
+    echo "  → Updated managed section in $GLOBAL_TARGET"
+  fi
+  if [ "$(get_mode "$MODE_PROJECT")" = "inject" ] && [ -f "$PROJECT_TARGET" ]; then
+    inject_section "$PROJECT_TARGET" "$DIST/project.md"
+    echo "  → Updated managed section in $PROJECT_TARGET"
+  fi
+
   local global_count project_count
   global_count=$(ls "$SNIPPETS/global"/*.md 2>/dev/null | wc -l | tr -d ' ')
   project_count=$(ls "$SNIPPETS/project"/*.md 2>/dev/null | wc -l | tr -d ' ')
   echo "Compiled: $global_count global + $project_count project snippets"
-  echo "  → $DIST/global.md"
-  echo "  → $DIST/project.md"
+  echo "  → $DIST/global.md ($(get_mode "$MODE_GLOBAL") mode)"
+  echo "  → $DIST/project.md ($(get_mode "$MODE_PROJECT") mode)"
+}
+
+link_target() {
+  local label="$1" target="$2" dist_file="$3" mode_file="$4"
+
+  # Already managed — check current mode
+  if [ -L "$target" ]; then
+    echo "$label: already symlinked"
+    echo "symlink" > "$mode_file"
+    return
+  fi
+
+  if grep -qF "$MARKER_BEGIN" "$target" 2>/dev/null; then
+    echo "$label: already using inject mode"
+    echo "inject" > "$mode_file"
+    return
+  fi
+
+  # Existing file — ask the user
+  if [ -f "$target" ]; then
+    echo ""
+    echo "$label: $target already exists."
+    echo ""
+    echo "  1) Replace  — back up existing file, symlink to compiled output"
+    echo "               Your current content is replaced entirely."
+    echo "  2) Inject   — keep your file, append a managed section with markers"
+    echo "               Your content stays. Only the managed section updates on recompile."
+    echo ""
+    read -rp "  Choose [1/2]: " choice
+
+    case "$choice" in
+      1)
+        local backup="${target}.bak.$(date +%Y%m%d)"
+        cp "$target" "$backup"
+        echo "$label: backed up to $backup"
+        ln -sf "$dist_file" "$target"
+        echo "$label: symlinked → $dist_file"
+        echo "symlink" > "$mode_file"
+        ;;
+      2)
+        inject_section "$target" "$dist_file"
+        echo "$label: injected managed section"
+        echo "inject" > "$mode_file"
+        ;;
+      *)
+        echo "$label: skipped"
+        ;;
+    esac
+    return
+  fi
+
+  # No existing file — symlink (nothing to preserve)
+  ln -sf "$dist_file" "$target"
+  echo "$label: symlinked → $dist_file"
+  echo "symlink" > "$mode_file"
 }
 
 do_link() {
-  # Set up symlinks from target locations to dist files
-  local linked=0
-
-  if [ -L "$GLOBAL_TARGET" ]; then
-    echo "Global: already symlinked"
-  elif [ -f "$GLOBAL_TARGET" ]; then
-    local backup="${GLOBAL_TARGET}.bak.$(date +%Y%m%d)"
-    cp "$GLOBAL_TARGET" "$backup"
-    echo "Global: backed up existing file to $backup"
-    ln -sf "$DIST/global.md" "$GLOBAL_TARGET"
-    echo "Global: symlinked $GLOBAL_TARGET → $DIST/global.md"
-    linked=1
-  else
-    ln -sf "$DIST/global.md" "$GLOBAL_TARGET"
-    echo "Global: symlinked $GLOBAL_TARGET → $DIST/global.md"
-    linked=1
-  fi
-
-  if [ -L "$PROJECT_TARGET" ]; then
-    echo "Project: already symlinked"
-  elif [ -f "$PROJECT_TARGET" ]; then
-    local backup="${PROJECT_TARGET}.bak.$(date +%Y%m%d)"
-    cp "$PROJECT_TARGET" "$backup"
-    echo "Project: backed up existing file to $backup"
-    ln -sf "$DIST/project.md" "$PROJECT_TARGET"
-    echo "Project: symlinked $PROJECT_TARGET → $DIST/project.md"
-    linked=1
-  else
-    ln -sf "$DIST/project.md" "$PROJECT_TARGET"
-    echo "Project: symlinked $PROJECT_TARGET → $DIST/project.md"
-    linked=1
-  fi
-
-  [ "$linked" -gt 0 ] && echo "Done. Run '$0 compile' to regenerate."
+  mkdir -p "$DIST"
+  link_target "global" "$GLOBAL_TARGET" "$DIST/global.md" "$MODE_GLOBAL"
+  link_target "project" "$PROJECT_TARGET" "$DIST/project.md" "$MODE_PROJECT"
+  echo ""
+  echo "Done. Run '$0 compile' to regenerate."
 }
 
 do_promote() {

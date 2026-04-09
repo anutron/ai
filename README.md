@@ -19,11 +19,15 @@ cd ~/claude-skills
 **2. Install the rules** (compiles snippets into your `~/.claude/CLAUDE.md`):
 
 ```bash
-./claude-rules/compile.sh link     # symlinks CLAUDE.md to compiled output
+./claude-rules/compile.sh link     # set up CLAUDE.md targets
 ./claude-rules/compile.sh compile  # builds from snippets
 ```
 
-If you already have a `~/.claude/CLAUDE.md`, it gets backed up with a `.bak.YYYYMMDD` suffix before linking. See [claude-rules/README.md](claude-rules/README.md) for customization.
+If you already have a `~/.claude/CLAUDE.md`, `link` asks how to handle it:
+- **Replace** — backs up your file, symlinks to compiled output
+- **Inject** — keeps your file, appends a managed section between begin/end markers that updates on recompile
+
+See [claude-rules/README.md](claude-rules/README.md) for details.
 
 **3. Promote skills globally** — open Claude Code in this repo and run:
 

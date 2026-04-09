@@ -1,3 +1,16 @@
+## v1.8.0 — 2026-04-09
+
+Inject mode for claude-rules — non-destructive CLAUDE.md management.
+
+**New feature**
+- `compile.sh link` now asks before overwriting an existing `~/.claude/CLAUDE.md`. Two options: **replace** (symlink, current behavior) or **inject** (append a managed section between begin/end markers, preserving user content). On recompile, only the managed section updates.
+
+**Changed**
+- `publish.sh` now syncs `compile.sh` and `variables.env` alongside rule snippets, keeping the published claude-rules in sync with the source
+- Updated quick-start and claude-rules README to document inject mode
+
+---
+
 ## v1.7.0 — 2026-04-09
 
 Three new skills, publish cleanup.
