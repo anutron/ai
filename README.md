@@ -349,6 +349,7 @@ The `/set-topic` skill checks for the hook on every invocation. If the hook is m
 
 | File | Description |
 |------|-------------|
+| [permissions-guide.md](docs/permissions-guide.md) | Recommended permission rules — reduce nagging, protect sensitive files, block destructive commands |
 | [statusline.sh](bin/statusline.sh) | Custom Claude Code status line — git status, session topic, terminal title |
 | [remind-session-topic.sh](hooks/remind-session-topic.sh) | Hook: reminds Claude to set a session topic, escalates after 5 turns |
 | [log-skill-use.sh](hooks/log-skill-use.sh) | Hook: logs Skill tool invocations to `~/.claude/skill-usage.tsv` |

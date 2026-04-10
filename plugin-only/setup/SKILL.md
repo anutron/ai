@@ -14,6 +14,7 @@ Interactive onboarding for the claude-skills toolkit. Walks the user through wha
 - Statusline installed: !`[ -f ~/.claude/statusline.sh ] && echo "yes" || echo "no"`
 - Hooks installed: !`[ -f ~/.claude/hooks/remind-session-topic.sh ] && echo "yes" || echo "no"`
 - Current settings hooks: !`cat ~/.claude/settings.json 2>/dev/null | grep -c '"command"' || echo "0"` hook(s) configured
+- Permissions configured: !`python3 -c "import json; s=json.load(open('$HOME/.claude/settings.json')); p=s.get('permissions',{}); print(f'{len(p.get(\"allow\",[]))} allow, {len(p.get(\"deny\",[]))} deny, {len(p.get(\"ask\",[]))} ask')" 2>/dev/null || echo "none"`
 
 ## Instructions
 
@@ -177,19 +178,57 @@ Then update `~/.claude/settings.json` to register the hooks. Read the current fi
 
 Be careful to merge, not overwrite — the user may have existing hooks. Read `~/.claude/settings.json`, add any missing hook entries, write it back.
 
-### Step 4: Summary
+### Step 4: Permissions
+
+> The toolkit includes recommended permission rules that reduce how often Claude asks for confirmation while protecting sensitive files and blocking destructive commands. Want to set up permissions?
+
+If no, skip to the summary.
+
+If yes, read the permissions guide for the full reference:
+
+```bash
+PLUGIN_ROOT="<detected root>"
+cat "$PLUGIN_ROOT/docs/permissions-guide.md"
+```
+
+Walk through the categories one at a time. For each, explain what it does and ask if they want it:
+
+1. **Auto-allow core tools** — `Read`, `Write`, `Edit`, `Bash`, `Glob`, `Grep`, etc. run without asking. This is the big quality-of-life improvement. Ask: "This lets Claude run all core tools without confirmation. The biggest change is auto-allowing Bash — Claude can run any shell command. OK with that, or would you prefer to leave Bash out and confirm shell commands individually?"
+
+2. **Deny destructive operations** — Blocks `rm -rf /`, `diskutil eraseDisk`, `gh repo delete`, etc. Recommend this to everyone: "These are catastrophic commands no one runs intentionally. Recommended for all users."
+
+3. **Privacy boundaries** — Blocks access to `~/Documents`, `~/Downloads`, `~/Desktop`, `~/Pictures`. Ask: "This walls off personal directories that aren't code. Skip if your code lives inside these folders."
+
+4. **Sensitive file protection** — Blocks reading SSH keys, AWS credentials, GPG private keys. Recommend to everyone. Then ask: "Do you use other credential files? (e.g., `~/.kube/config`, `~/.npmrc`, `~/.docker/config.json`)" — add any they mention.
+
+5. **Guardrails** — Force push, repo visibility changes, and settings.json edits require confirmation. "These are sometimes needed but should always be a conscious decision."
+
+6. **Environment protection** — Shell profiles and `env`/`printenv` require confirmation. "Your shell config can contain secrets. This lets Claude read them when needed but you see what's accessed."
+
+For each category the user accepts, collect the rules. After all categories, merge them into `~/.claude/settings.json`:
+
+```bash
+# Read current settings, merge permissions, write back
+# Be careful to merge arrays, not replace them — the user may have existing allow/deny/ask rules
+```
+
+Read `~/.claude/settings.json`, parse the existing `permissions` object (if any), append new rules to each array (deduplicating), and write it back. Use `jq` if available, otherwise do it carefully with a script.
+
+### Step 5: Summary
 
 Print a clear summary of what was installed:
 
 ```
 Setup complete!
 
-  Rules:      installed (inject mode)
-  Statusline: installed
-  Hooks:      installed (3 hooks)
+  Rules:       installed (inject mode)
+  Statusline:  installed
+  Hooks:       installed (3 hooks)
+  Permissions: installed (6 categories)
 
 To update later: git pull in the plugin directory, then run /claude-skills:setup again.
 Available skills: /claude-skills:list-skills
+Full permissions reference: docs/permissions-guide.md
 ```
 
 Adjust the summary based on what was actually installed vs skipped.
