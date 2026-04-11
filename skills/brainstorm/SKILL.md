@@ -235,11 +235,15 @@ Key principles for stages:
 
 Commit the plan immediately after writing.
 
+**Design doc consistency check:** Before committing the plan, compare it against the brainstorm doc. If any design decision in the plan differs from the brainstorm doc -- new architecture, changed data model, revised flow, different technical approach -- update the brainstorm doc first to reflect the current design, commit it, then commit the plan. The brainstorm doc is the living design record, not a frozen snapshot. The plan must never contradict it.
+
 **Validate design doc reference:** Re-read the written plan and confirm it contains a `**Design doc:**` line pointing to the brainstorm doc path. If missing, add it before committing. This reference is how `/execute-plan` and its agents find the design context — without it, agents only see execution order and miss the architecture and behavioral decisions.
 
 ## Step 3: Present plan for review
 
 This is the one real review gate in the entire workflow. The user reads the strategy and approves or requests changes. Present the plan and wait for approval.
+
+**Feedback that changes requirements:** If plan review produces feedback that changes the design -- not just execution order, but architecture, data model, flows, or technical approach -- update the brainstorm doc first, commit it, then amend the plan to match. The brainstorm doc and plan must be consistent at the point of approval. Stage 1 of the plan ("update specs") derives from the brainstorm doc, so any design change that isn't captured there will be lost when agents execute.
 
 ## Step 4: Execution handoff
 

@@ -48,6 +48,8 @@ Evaluate what has changed and commit only work that is complete and appropriate 
 - Stage specific files by name; never blindly `git add -A`
 - If some changes are ready and others aren't, commit only the ready ones
 
+**Pre-commit hook failures:** If the spec-check pre-commit hook blocks a commit, investigate whether the hook is correct before bypassing with `--no-verify`. Search specs for mentions of the changed feature — rendering/layout changes to spec'd UI components (help overlay, calendar panel, todo panel, etc.) ARE behavioral and need spec updates. Only bypass when the changes are genuinely non-behavioral (e.g., import reordering, variable renaming, comment-only edits).
+
 ### 4. Report Spec Status
 
 After committing, report:

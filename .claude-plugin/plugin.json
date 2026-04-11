@@ -1,6 +1,6 @@
 {
   "name": "claude-skills",
-  "version": "1.12.0",
+  "version": "1.13.0",
   "description": "Spec-driven development workflow and general-purpose skills for Claude Code",
   "author": {
     "name": "Aaron Newton",

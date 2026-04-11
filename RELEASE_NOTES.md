@@ -1,3 +1,13 @@
+## v1.13.0 — 2026-04-11
+
+Guardrails for design doc consistency and spec-aware commits.
+
+**Changed**
+- `/brainstorm` — added design doc consistency check before committing plans, and feedback-changes-requirements guidance during plan review. Brainstorm doc stays in sync with the plan as the living design record.
+- `/save-w-specs` — added pre-commit hook failure guidance: investigate before bypassing, rendering/layout changes to spec'd UI components are behavioral and need spec updates.
+
+---
+
 ## v1.12.0 — 2026-04-11
 
 Brainstorm UX upgrade and Go CLI track.
