@@ -14,7 +14,7 @@ Take a user from "I have an idea" to a running first version. Three phases: disc
 
 ## Context
 
-- Stack spectrum: !`head -30 docs/stack-spectrum.md 2>/dev/null | head -30`
+- Stack spectrum: Refer to the "Tech Stack Spectrum" section in your system instructions (CLAUDE.md)
 - Date: !`date +%Y-%m-%d`
 
 ---

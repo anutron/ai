@@ -1,3 +1,12 @@
+## v1.15.0 — 2026-04-11
+
+Portability fix for kickoff skill.
+
+**Changed**
+- `/kickoff` — replaced dynamic `docs/stack-spectrum.md` file read with a static reference to CLAUDE.md system instructions, making the skill work correctly in any project directory.
+
+---
+
 ## v1.14.0 — 2026-04-11
 
 Optional worktree isolation for plan execution.
