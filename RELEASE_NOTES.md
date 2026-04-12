@@ -1,3 +1,12 @@
+## v1.16.0 — 2026-04-11
+
+Uncapped bugbash agent parallelism.
+
+**Changed**
+- `/bugbash` — removed the artificial 3-agent slot cap. All non-conflicting bugs now dispatch simultaneously, matching `/execute-plan`'s approach. The only remaining gate is file-overlap conflicts between in-progress bugs.
+
+---
+
 ## v1.15.0 — 2026-04-11
 
 Portability fix for kickoff skill.

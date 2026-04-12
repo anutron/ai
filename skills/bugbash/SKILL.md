@@ -39,7 +39,7 @@ Bugs live in status folders — the folder IS the status. No need to read files 
 
 ```
 .bug-bash/
-  todo/              # Queued, waiting for investigation + agent slot
+  todo/              # Queued, waiting for investigation or file-overlap resolution
     bug-001.md
     bug-003.md
   investigating/     # Investigation agent analyzing (foreground, pre-dispatch)
@@ -86,7 +86,7 @@ When invoked with no arguments (or the session is already active):
    - Initialize internal state:
      ```
      next_bug_id = 1 (or max existing + 1 if resuming)
-     slots = [] (max 3)
+     active = [] (no cap — dispatch all non-conflicting bugs simultaneously)
      queue = [] (pending bugs in todo/)
      ```
    - To find next_bug_id when resuming:
@@ -244,17 +244,14 @@ Report format:
 
 ### Step 6: Dispatch or Queue
 
-- **If a slot is available** (fewer than 3 active agents): dispatch immediately
-- **If all 3 slots are full**: leave in `todo/`, tell user:
-  ```
-  BUG-<NNN> queued — all 3 agent slots in use. Will dispatch when a slot frees up.
-  ```
+- **If no file-overlap conflict** with in-progress bugs: dispatch immediately
+- **If file overlap detected**: leave in `todo/` (see Collision Avoidance below)
 
 ### Step 7: Confirm to User
 
 ```
 BUG-<NNN>: <title>
-Status: dispatched (agent working in worktree) | queued (waiting for slot)
+Status: dispatched (agent working in worktree) | queued (file overlap with in-progress bug)
 ```
 
 Keep it short — the user wants to keep reporting bugs, not read paragraphs.
@@ -385,7 +382,7 @@ Before committing, append these sections to the bug file:
 
 ### Update State
 
-- Add to slots: `{bug_id: NNN, agent_id: <id>}`
+- Add to active list: `{bug_id: NNN, agent_id: <id>}`
 - Update bug file frontmatter: `agent_id: <id>`
 
 ---
@@ -473,16 +470,16 @@ If the agent reports it's blocked (needs a decision from the user):
   BUG-<NNN> blocked: <title>
     Agent needs input: <brief description of decision needed>
   ```
-- Free the slot for other work
+- Free the agent for other work
 
 **To unblock:** User provides the decision. Coordinator updates the bug file with the answer, moves it back to `todo/`, and re-dispatches with the additional context.
 
-### Step 5: Free Slot, Mark Task Complete, and Dispatch Next
+### Step 5: Mark Task Complete and Dispatch Queued
 
-- Remove from slots
+- Remove from active list
 - Mark the task complete in the native Task system -- this auto-unblocks any bugs that were waiting on this one (e.g., same-file overlap dependencies)
-- If `todo/` has pending bugs, dispatch the next one
-- Multiple bugs can execute in parallel -- each in its own worktree, each with its own agent. Dispatch all unblocked bugs simultaneously up to the slot limit.
+- If `todo/` has pending bugs, dispatch all newly unblocked ones simultaneously
+- There is no agent cap -- every non-conflicting bug runs in parallel, each in its own worktree with its own agent. The only gate is file-overlap conflicts.
 
 ---
 
@@ -509,8 +506,8 @@ Read titles only from in-progress, blocked, and todo bugs for the table. Print:
 | 004 | <title> | blocked |
 | 005 | <title> | todo |
 
-Active: <N>/3 slots (count of in-progress/)
-Queue: <N> todo
+Active: <N> agents (count of in-progress/)
+Queue: <N> todo (file-overlap conflicts)
 Blocked: <N> (needs user input)
 Merged: <N> (awaiting acceptance testing)
 Verified: <N> (passed acceptance testing)
@@ -673,10 +670,10 @@ Merge in completion order (first done, first merged). If a later merge conflicts
 | Failure | Action |
 |---------|--------|
 | Worktree creation fails | Report error, keep bug in `todo/`, retry on next dispatch cycle |
-| Agent errors or crashes | Move to `failed/`, free slot, report to user |
-| Agent blocked / needs decision | Move to `blocked/`, free slot, report question to user |
+| Agent errors or crashes | Move to `failed/`, report to user |
+| Agent blocked / needs decision | Move to `blocked/`, report question to user |
 | Merge conflict | Abort merge, move to `conflict/`, preserve worktree, report to user |
-| All 3 slots full | Leave in `todo/`, dispatch when slot frees |
+| File overlap with in-progress bug | Leave in `todo/`, dispatch when blocking bug merges |
 | User reports bug during agent completion handling | Finish merge first, then process new bug |
 | `.bug-bash/` already exists on start | Resume session — `ls` each folder to rebuild state |
 | Agent references non-existent APIs | Move to `failed/`, append `## Hallucinated APIs` section to bug file listing what was hallucinated and what the correct API is. Include this context in any re-dispatch prompt. |
