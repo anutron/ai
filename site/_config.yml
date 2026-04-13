@@ -21,7 +21,7 @@ authors:
   aaron:
     name:           Aaron Newton
     site:           https://anutron.com
-    avatar:         /assets/images/avatar-aaron.jpg
+    avatar:         assets/images/avatar-aaron.jpg
     bio:            "Chief Data Officer & cofounder at Thanx. Building Aaron-shaped tooling around Claude Code, illustrated guides, and AI workflows."
     email:          aaron@anutron.com
     twitter:        https://twitter.com/anutron
@@ -35,7 +35,7 @@ defaults:
     values:
       layout: post
       author: aaron
-      avatar: /assets/images/avatar-aaron.jpg
+      avatar: assets/images/avatar-aaron.jpg
 
   # all pages
   - scope:
