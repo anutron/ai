@@ -804,3 +804,8 @@ div.a2a_full_footer {display:none;}
 	 }
  }
  
+/* Home page article image border radius (BUG-004) */
+.homefirstpage .topfirstimage { border-radius: 6px; }
+.homefirstpage .remove-site-content-margin img { border-radius: 6px; }
+.homefirstpage .main-loop-card img { border-radius: 6px; }
+.homefirstpage .jumbotron-home { border-radius: 6px; overflow: hidden; }
