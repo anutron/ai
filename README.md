@@ -7,6 +7,8 @@ Two things in one repo:
 
 Steal what's useful. Most people point Claude at this repo and cherry-pick what fits their workflow.
 
+> 📘 **Rolling out Claude Code at your organization?** See the [adoption recipes](docs/claude-code-recipes/00-overview.md) — opinionated patterns for project organization, design-to-execution workflow, security plugins, and data proxies. Each recipe pairs an approachable description for non-technical readers with a technical reference for Claude.
+
 ## Quick start
 
 ### Option A: Install as a plugin (recommended)
