@@ -6,7 +6,7 @@ image: "/assets/images/airon/spec-tdd-cycle.png"
 comments: false
 ---
 
-I'm Aaron Newton — VP Product at [Thanx](https://thanx.com), and a long-time builder, illustrator, and tinkerer.
+I'm Aaron Newton — Chief Data Officer and cofounder at [Thanx](https://thanx.com), and a long-time builder, illustrator, and tinkerer.
 
 This site collects the work I do around AI-augmented software development:
 
