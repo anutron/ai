@@ -1,0 +1,13 @@
+{
+  "name": "anutron-install",
+  "version": "0.1.0",
+  "description": "Per-project installer for the anutron (claude-skills) toolkit. Symlinks skills, registers hooks, compiles CLAUDE.md — all scoped to the current folder.",
+  "author": {
+    "name": "Aaron Newton",
+    "url": "https://github.com/anutron"
+  },
+  "repository": "https://github.com/anutron/claude-skills",
+  "license": "MIT",
+  "keywords": ["installer", "skills", "per-project", "anutron"],
+  "skills": "./skills/"
+}
