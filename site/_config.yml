@@ -1,0 +1,59 @@
+# Site
+name: 'AI Ron'
+description: "Aaron Newton's notes, skills, and tools for working with AI."
+logo: 'assets/images/logo.png'
+favicon: 'assets/images/favicon.ico'
+baseurl: ''
+url: 'https://ai.anutron.com'
+email: 'aaron@anutron.com'
+
+include: ["_pages"]
+permalink: /:title/
+
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-paginate
+  - jekyll-seo-tag
+
+authors:
+  aaron:
+    name:           Aaron Newton
+    site:           https://anutron.com
+    avatar:         /assets/images/avatar-aaron.jpg
+    bio:            "VP Product at Thanx. Building Aaron-shaped tooling around Claude Code, illustrated guides, and AI workflows."
+    email:          aaron@anutron.com
+    twitter:        https://twitter.com/anutron
+
+# Defaults
+defaults:
+  # all posts
+  - scope:
+      path: "_posts"
+    values:
+      layout: post
+      author: aaron
+      avatar: /assets/images/avatar-aaron.jpg
+
+  # all pages
+  - scope:
+      path: "_pages"
+    values:
+      layout: page
+
+# Syntax
+markdown: kramdown
+highlighter: rouge
+
+# Paginate
+paginate: 10
+
+# Exclude
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - node_modules
+  - docker-compose.yml

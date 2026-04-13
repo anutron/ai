@@ -1,0 +1,15 @@
+source "https://rubygems.org"
+
+# Jekyll itself
+gem "jekyll", "~> 4.3"
+
+# Theme plugins
+group :jekyll_plugins do
+  gem "jekyll-feed"
+  gem "jekyll-sitemap"
+  gem "jekyll-paginate"
+  gem "jekyll-seo-tag"
+end
+
+# macOS-specific (Apple Silicon needs this for some gems)
+gem "webrick", "~> 1.8"

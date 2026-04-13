@@ -56,7 +56,7 @@ while IFS= read -r md_file; do
       errors=$((errors + 1))
     fi
   done < <(extract_links "$md_file")
-done < <(find . -name '*.md' -not -path './.git/*' | sed 's|^\./||')
+done < <(find . -name '*.md' -not -path './.git/*' -not -path '*/vendor/*' -not -path '*/node_modules/*' -not -path '*/_site/*' | sed 's|^\./||')
 
 
 # --- Check 2: Orphan published artifacts ---
@@ -79,7 +79,7 @@ while IFS= read -r md_file; do
     resolved=$(python3 -c "import os.path; print(os.path.normpath('$dir/$link'))" 2>/dev/null || echo "$dir/$link")
     echo "$resolved"
   done < <(extract_links "$md_file")
-done < <(find . -name '*.md' -not -path './.git/*' | sed 's|^\./||') \
+done < <(find . -name '*.md' -not -path './.git/*' -not -path '*/vendor/*' -not -path '*/node_modules/*' -not -path '*/_site/*' | sed 's|^\./||') \
   | sort -u > "$all_links_file"
 
 check_orphan() {
