@@ -1,3 +1,13 @@
+## v1.17.1 — 2026-04-12
+
+Polish pass on the adoption recipes.
+
+**Changed**
+- `docs/claude-code-recipes/00-overview.md` — section headers now link to their docs, each section gets a "Read recipe N" footer link and an HR separator for clearer navigation
+- `docs/claude-code-recipes/recipe4_data-proxy-glovebox.png` — replaced with a final illustration that has the correct glove box geometry (gloves attached to the box wall, robot arms enter through ports)
+
+---
+
 ## v1.17.0 — 2026-04-12
 
 Adoption recipes for organizations + writing-style rule.

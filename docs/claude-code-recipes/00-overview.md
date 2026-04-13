@@ -15,7 +15,7 @@ The recipes are ordered from foundational to advanced. The first two require not
 
 ## The recipes
 
-### 1. Skills and project organization
+### [1. Skills and project organization](01-skills-and-project-organization.md)
 
 ![Skills and project organization](recipe1_skill-organization-pegboard.png)
 
@@ -23,7 +23,11 @@ How to structure a personal Claude Code workshop so that your skills, rules, and
 
 **Prerequisites:** Claude Code installed. A git repository.
 
-### 2. The design-to-execution pipeline
+[Read recipe 1 →](01-skills-and-project-organization.md)
+
+---
+
+### [2. The design-to-execution pipeline](02-design-to-execution-pipeline.md)
 
 ![The design-to-execution pipeline](recipe2_execution-pipeline-assembly.png)
 
@@ -31,7 +35,11 @@ A document-driven workflow for building things with AI that produces predictable
 
 **Prerequisites:** Recipe 1 (project organization). A willingness to plan before building.
 
-### 3. The security plugin
+[Read recipe 2 →](02-design-to-execution-pipeline.md)
+
+---
+
+### [3. The security plugin](03-security-plugin.md)
 
 ![The security plugin](recipe3_security-plugin-three-helpers.png)
 
@@ -39,10 +47,16 @@ A Claude Code plugin that embeds your organization's security policy into every 
 
 **Prerequisites:** A security policy (even a draft). Claude Code's plugin system.
 
-### 4. The data proxy
+[Read recipe 3 →](03-security-plugin.md)
+
+---
+
+### [4. The data proxy](04-data-proxy.md)
 
 ![The data proxy](recipe4_data-proxy-glovebox.png)
 
 When AI tools need access to business data, a proxy in the middle is safer than giving the AI direct credentials. The proxy handles authentication, decides which operations to expose, and ensures Claude never holds the keys to the real system. Three tiers of sophistication depending on the org's technical capability.
 
 **Prerequisites:** An API or data source you want Claude to access safely.
+
+[Read recipe 4 →](04-data-proxy.md)
