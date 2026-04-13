@@ -636,11 +636,6 @@ ol.list-featured li:before {
 .catlist .sep:last-child {
 	display:none;
 }
-footer {
-	margin-top:50px;
-	z-index:1022;
-	position:relative;
-}
 .sticky-top-offset {
 	top:70px;
 }
