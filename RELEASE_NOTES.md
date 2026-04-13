@@ -1,3 +1,18 @@
+## v1.17.0 — 2026-04-12
+
+Adoption recipes for organizations + writing-style rule.
+
+**Added**
+- `docs/claude-code-recipes/` — A 5-doc set of opinionated patterns for orgs scaling Claude Code adoption. Each recipe pairs an approachable description with a technical reference for Claude:
+  - **00-overview** — Goal and recipe index
+  - **01-skills-and-project-organization** — Personal workshop pattern, three sharing tiers (steal/clone/plugin)
+  - **02-design-to-execution-pipeline** — Brainstorm → plan → spec → code workflow
+  - **03-security-plugin** — Policy injection, active guardrails, compliance observability
+  - **04-data-proxy** — Three tiers of proxy sophistication, credential isolation
+- `claude-rules/snippets/global/015-writing-style.md` — Writing style: sentence case titles, en-dash never em-dash
+
+---
+
 ## v1.16.0 — 2026-04-11
 
 Uncapped bugbash agent parallelism.

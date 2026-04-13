@@ -357,6 +357,12 @@ The `/set-topic` skill checks for the hook on every invocation. If the hook is m
 
 See [Workflow Guide](docs/workflow-guide.md) for how all the pieces fit together.
 
+## Adoption recipes for organizations
+
+A set of opinionated patterns for orgs scaling Claude Code adoption — covers personal workshops, the design-to-execution pipeline, security plugins, and data proxies. Each recipe has an approachable orientation up top and a technical reference at the bottom for Claude.
+
+See [docs/claude-code-recipes/](docs/claude-code-recipes/00-overview.md).
+
 ## Plugins I Use
 
 | Plugin | Source | What it does |
