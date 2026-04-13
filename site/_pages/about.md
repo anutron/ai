@@ -1,6 +1,6 @@
 ---
 title: "About"
-layout: page-sidebar
+layout: page
 permalink: "/about.html"
 image: "/assets/images/airon/spec-tdd-cycle.png"
 comments: false
@@ -16,10 +16,6 @@ This site collects the work I do around AI-augmented software development:
 
 Everything here is open and shareable. The plugin and source markdown live at [github.com/anutron/ai](https://github.com/anutron/ai).
 
-If you want to install the plugin in Claude Code:
+---
 
-```
-/plugin install ai@anutron/ai
-```
-
-Find me on [GitHub](https://github.com/anutron) or reach out at [aaron@anutron.com](mailto:aaron@anutron.com).
+*Site built with [Mundana](https://www.wowthemes.net/mundana-jekyll-theme/), a Jekyll theme by [Sal at WowThemes](https://www.wowthemes.net/).*
