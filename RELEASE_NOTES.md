@@ -1,3 +1,12 @@
+## v1.18.0 — 2026-04-14
+
+Promote skill now recognizes personal-global skills.
+
+**Changed**
+- `skills/promote/SKILL.md` — Added "Personal-global" classification for prefixed skills (`airon-*`, `thanx-*`) that are useful globally but excluded from publishing. Promotion and publishing are now explicitly documented as orthogonal axes.
+
+---
+
 ## v1.17.1 — 2026-04-12
 
 Polish pass on the adoption recipes.

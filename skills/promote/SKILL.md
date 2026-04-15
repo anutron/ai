@@ -40,10 +40,16 @@ For each unpromoted skill, read its SKILL.md and classify it:
 - No hardcoded project paths
 - General-purpose development workflow
 
-**Project-specific** — Depends on this project's infrastructure or personal context:
+**Personal-global** — Personal workflow that works across all projects:
+- References personal tools or preferences (e.g., macOS-specific, personal integrations)
+- No project-specific dependencies — works in any repo
+- Prefixed skills (`airon-*`, `thanx-*`) that are useful globally but excluded from publishing
+- Recommendation: **Promote** (symlink makes it global; prefix keeps it out of `/publish-skills`)
+
+**Project-specific** — Depends on this project's infrastructure:
 - References project-specific tools, tables, or services
-- References personal routines or integrations
 - Contains hardcoded paths to this project
+- Only makes sense in the context of this repo
 
 **Borderline** — Could be universal with minor changes:
 - Has a small project dependency that could be made optional
