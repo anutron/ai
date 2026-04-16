@@ -8,7 +8,17 @@ url: 'https://ai.anutron.com'
 email: 'aaron@anutron.com'
 
 include: ["_pages"]
-permalink: /:title/
+permalink: /post/:title/
+
+# Collections
+collections:
+  kit:
+    output: true
+    permalink: /kit/:path/
+    sort_by: order
+  feed:
+    output: true
+    permalink: /feed/:path/
 
 # Plugins
 plugins:
@@ -43,12 +53,30 @@ defaults:
     values:
       layout: page
 
+  # all kit items
+  - scope:
+      path: ""
+      type: "kit"
+    values:
+      layout: kit-item
+
+  # all feed items
+  - scope:
+      path: ""
+      type: "feed"
+    values:
+      layout: feed-item
+      author: aaron
+
 # Syntax
 markdown: kramdown
 highlighter: rouge
 
 # Paginate
 paginate: 10
+
+# Allow posts/notes dated today
+future: true
 
 # Exclude
 exclude:

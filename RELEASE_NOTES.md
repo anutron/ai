@@ -1,3 +1,20 @@
+## v1.19.0 — 2026-04-15
+
+Skill dependency tracking and anutron-install skills.
+
+**Added**
+- `hooks/log-skill-read.sh` — New hook that tracks Read tool accesses to skill files, logging to `~/.claude/skill-reads.tsv`. Captures dependency usage for skills loaded by reference (e.g., `agent-driven-development` loaded by `execute-plan`) that never appear in invocation logs.
+- README section: "Skill usage tracking" — documents how the three logging hooks work together (invocations vs dependency reads) with setup instructions and log format reference.
+- `skills/anutron-install/` — Install the anutron kit into a project (skills, hooks, compiled CLAUDE.md)
+- `skills/anutron-uninstall/` — Reverse everything anutron-install did
+- `skills/anutron-install-plugin/` — Lightweight plugin wrapper for per-project installs (Option B)
+- Site: feed page, kit guide pages, styling updates
+
+**Fixed**
+- `hooks/check-links.sh` — Exclude `site/vendor/`, `vendor/`, and `node_modules/` from link checking to avoid false positives from vendored gem documentation
+
+---
+
 ## v1.18.0 — 2026-04-14
 
 Promote skill now recognizes personal-global skills.

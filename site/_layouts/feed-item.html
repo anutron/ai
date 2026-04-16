@@ -1,0 +1,49 @@
+---
+layout: default
+---
+
+{% assign author = site.authors[page.author] %}
+
+<div class="container" style="max-width: 700px;">
+
+  <p class="text-muted small mt-3">
+    <a href="{{ site.baseurl }}/feed/" class="text-muted">← back to feed</a>
+  </p>
+
+  <p class="text-muted small mb-3">
+    {{ page.date | date: "%B %-d, %Y" }}
+  </p>
+
+  {% if page.title %}
+  <h1 class="font-weight-bold mb-3">{{ page.title }}</h1>
+  {% endif %}
+
+  {% if page.image %}
+  <img src="{{ site.baseurl }}{{ page.image }}" alt="{{ page.title | default: 'Note image' }}" class="w-100 rounded mb-4">
+  {% endif %}
+
+  <div class="feed-content">
+    {{ content }}
+  </div>
+
+  {% if page.link %}
+  <div class="mt-4 p-3 border rounded">
+    <a href="{{ page.link }}" target="_blank" rel="noopener" class="text-dark">
+      <small class="text-muted d-block">Linked from this note</small>
+      <span style="word-break: break-all;">{{ page.link }}</span>
+    </a>
+  </div>
+  {% endif %}
+
+  <hr class="mt-5">
+  <div class="d-flex align-items-center mt-4 mb-5">
+    {% if author.avatar %}
+    <img src="{{ site.baseurl }}/{{ author.avatar }}" alt="{{ author.name }}" class="rounded-circle mr-3" width="48" height="48">
+    {% endif %}
+    <div>
+      <div class="font-weight-bold">{{ author.name }}</div>
+      <div class="text-muted small">{{ author.bio }}</div>
+    </div>
+  </div>
+
+</div>

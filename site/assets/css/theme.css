@@ -796,3 +796,261 @@ div.a2a_full_footer {display:none;}
 .homefirstpage .remove-site-content-margin img { border-radius: 6px; }
 .homefirstpage .main-loop-card img { border-radius: 6px; }
 .homefirstpage .jumbotron-home { border-radius: 6px; overflow: hidden; }
+
+/* ===== Home page (kit/blog/feed layout) ===== */
+
+.home-page {
+  max-width: 1200px;
+}
+
+/* Hero post */
+.home-hero-img {
+  max-height: 480px;
+  object-fit: cover;
+}
+
+/* Feed cards */
+.feed-card {
+  background: #fff;
+  transition: box-shadow 0.15s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.feed-card-link {
+  text-decoration: none;
+  display: block;
+  height: 100%;
+}
+.feed-card-link:hover {
+  text-decoration: none;
+}
+.feed-card-link:hover .feed-card {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.feed-card img {
+  max-height: 160px;
+  object-fit: cover;
+}
+.feed-card-excerpt {
+  flex: 1;
+}
+
+/* A-stack right column */
+.home-astack {
+  padding-left: 32px;
+}
+@media (max-width: 991px) {
+  .home-astack {
+    padding-left: 15px;
+    margin-top: 48px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 32px;
+  }
+}
+.astack-container {
+  position: sticky;
+  top: 120px;
+}
+.astack-header {
+  letter-spacing: -0.5px;
+}
+.astack-item {
+  background: #fff;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.astack-item-link {
+  text-decoration: none;
+  display: block;
+}
+.astack-item-link:hover {
+  text-decoration: none;
+}
+.astack-item-link:hover .astack-item {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border-color: #c7d2fe !important;
+}
+.astack-item-img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.astack-item-body {
+  min-width: 0;
+}
+
+/* Section header style */
+.spanborder {
+  border-bottom: 2px solid #1f2937;
+  padding-bottom: 8px;
+}
+.spanborder span {
+  display: inline-block;
+}
+
+/* ===== Thanx brand palette ===== */
+:root {
+  --thanx-spearmint: #13C1BF;
+  --thanx-spearmint-dk: #0EA09E;
+  --thanx-cayenne: #FF5A2E;
+  --thanx-cayenne-dk: #E84A20;
+  --thanx-gold: #D3AD0F;
+  --thanx-gold-dk: #B0900B;
+  --thanx-navy: #143F63;
+  --thanx-navy-dk: #0C2D4A;
+  --thanx-black: #071520;
+  --thanx-black-dk: #050D14;
+}
+
+/* Color block utilities — gradient backgrounds + auto text color */
+.cblock {
+  border-radius: 12px;
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.cblock-link {
+  text-decoration: none;
+  display: block;
+}
+.cblock-link:hover {
+  text-decoration: none;
+}
+.cblock-link:hover .cblock {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+/* Light backgrounds — black text */
+.cblock-spearmint {
+  background: linear-gradient(135deg, var(--thanx-spearmint) 0%, var(--thanx-spearmint-dk) 100%);
+  color: var(--thanx-black);
+}
+.cblock-cayenne {
+  background: linear-gradient(135deg, var(--thanx-cayenne) 0%, var(--thanx-cayenne-dk) 100%);
+  color: #fff;
+}
+.cblock-gold {
+  background: linear-gradient(135deg, var(--thanx-gold) 0%, var(--thanx-gold-dk) 100%);
+  color: var(--thanx-black);
+}
+
+/* Dark backgrounds — white text */
+.cblock-navy {
+  background: linear-gradient(135deg, var(--thanx-navy) 0%, var(--thanx-navy-dk) 100%);
+  color: #fff;
+}
+.cblock-black {
+  background: linear-gradient(135deg, #0F2030 0%, var(--thanx-black) 100%);
+  color: #fff;
+}
+
+/* Inside cblocks, subdue muted text using opacity */
+.cblock .text-muted,
+.cblock .feed-card-excerpt,
+.cblock-meta {
+  color: inherit !important;
+  opacity: 0.78;
+}
+.cblock h1, .cblock h2, .cblock h3, .cblock h4, .cblock h5, .cblock h6,
+.cblock .font-weight-bold {
+  color: inherit;
+}
+.cblock a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* Inner image mat — when an illustration is inside a colored block, give it
+   a white sub-container so the cream-background art doesn't disappear */
+.cblock-img-mat {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+}
+.cblock-img-mat img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ===== A-stack — colored item cards with full-height left thumbnail ===== */
+.astack-item {
+  border: none !important;
+  padding: 4px !important;          /* tight inset around inner content */
+  margin-bottom: 12px;
+  display: flex !important;
+  align-items: stretch;
+  overflow: hidden;
+  min-height: 110px;
+}
+.astack-item-img {
+  width: 35%;
+  flex-shrink: 0;
+  background-color: #fff;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 8px;
+}
+.astack-item-body {
+  padding: 12px 14px;
+  flex: 1;
+  min-width: 0;                      /* allows text truncation in flex */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* ===== Blog post cards (hero + more-from-blog) =====
+   Match the feed pattern: image on top, all text inside the colored card. */
+.blog-card {
+  border: none !important;
+  padding: 0 !important;
+  overflow: hidden;
+  display: block;
+  margin-bottom: 28px;
+}
+.blog-card-img-wrap {
+  background: #fff;
+  margin: 4px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.blog-card-img-wrap img {
+  width: 100%;
+  display: block;
+}
+.blog-card-body {
+  padding: 18px 22px 22px;
+}
+.blog-card.cblock-hero .blog-card-body h1 {
+  font-size: 2rem;
+  margin-bottom: 12px;
+}
+.blog-card .blog-card-cats {
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.7px;
+  margin-bottom: 6px;
+  opacity: 0.85;
+}
+.blog-card-readmore {
+  display: inline-block;
+  margin-top: 10px;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* ===== Feed cards — drop the border, use color blocks ===== */
+.feed-card {
+  border: none !important;
+  padding: 18px !important;
+}
+.feed-card .feed-card-excerpt {
+  flex: 1;
+}
