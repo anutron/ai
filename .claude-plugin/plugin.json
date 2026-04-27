@@ -9,6 +9,5 @@
   "repository": "https://github.com/anutron/claude-skills",
   "license": "MIT",
   "keywords": ["skills", "spec-driven", "development", "workflow", "testing", "review"],
-  "skills": "./skills/",
-  "hooks": "./hooks/hooks.json"
+  "skills": "./skills/"
 }
