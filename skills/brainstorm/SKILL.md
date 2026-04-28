@@ -127,11 +127,21 @@ After gathering enough context, silently assess: what could go wrong? How big is
   - **Question:** "Before we finalize: [risk description]. [Mitigation suggestion]. Want to proceed or adjust the approach?"
   - **Options:** "Proceed with mitigation" / "Adjust approach"
 
-## Step 7: Propose approaches
+## Step 7: Norms check
 
-Present 2-3 approaches with trade-offs. Lead with your recommended option and explain why. Be opinionated -- pick the best option and defend it. YAGNI ruthlessly.
+Before proposing approaches, name the problem space out loud and ask: "what does this kind of problem usually look like, and what's the standard professional approach?"
 
-## Step 8: Present design in sections
+If the user's framing skips a well-established solution -- hashing for credential comparison, env vars for secrets, parameterized queries for SQL, tests for behavioral code, idempotency keys for retries, rate limiting for public endpoints, migrations for schema changes -- surface it as an option even if they didn't ask for it. State the norm, state why it exists, then let the user choose knowingly.
+
+This protects against the unknown-unknown failure mode: users can't ask for solutions they don't know exist. The point isn't to override their judgment -- it's to make sure the alternative was visible before they chose.
+
+Skip when the problem space has no relevant industry norm, or when the user has explicitly opted into a non-standard approach earlier in the conversation.
+
+## Step 8: Propose approaches
+
+Present 2-3 approaches with trade-offs, informed by the norms surfaced in Step 7. Lead with your recommended option and explain why. Be opinionated -- pick the best option and defend it. YAGNI ruthlessly.
+
+## Step 9: Present design in sections
 
 Once you understand what you're building, present the design. Scale each section to its complexity -- a few sentences if straightforward, more detail if nuanced. Cover as relevant: architecture, components, data flow, error handling, testing strategy.
 
@@ -148,7 +158,7 @@ Ask after each section whether it looks right so far via `AskUserQuestion`. Be r
 - Apply Chesterton's Fence: understand why existing code exists before changing or removing it
 - Do not propose unrelated refactoring
 
-## Step 9: Write brainstorm doc
+## Step 10: Write brainstorm doc
 
 Always written. Save to `specs/docs/<date>-<topic>/brainstorm.md` where `<date>` is today's date (YYYY-MM-DD) and `<topic>` is a short kebab-case descriptor.
 
@@ -241,13 +251,15 @@ Commit the plan immediately after writing.
 
 ## Step 3: Present plan for review
 
-This is the one real review gate in the entire workflow. The user reads the strategy and approves or requests changes. Present the plan and wait for approval.
+This is the one real review gate in the entire workflow. The user reads the strategy and approves or requests changes.
 
-**Feedback that changes requirements:** If plan review produces feedback that changes the design -- not just execution order, but architecture, data model, flows, or technical approach -- update the brainstorm doc first, commit it, then amend the plan to match. The brainstorm doc and plan must be consistent at the point of approval. Stage 1 of the plan ("update specs") derives from the brainstorm doc, so any design change that isn't captured there will be lost when agents execute.
+After the plan is committed (Step 2), call `EnterPlanMode` and present the plan body as the plan-mode content. Plan mode is the right enforcement mechanism here -- the design docs are written, the strategy is locked, and any further work must wait for explicit approval. `ExitPlanMode` becomes the user's approval signal that hands off to Step 4.
+
+**Feedback that changes requirements:** If plan review produces feedback that changes the design -- not just execution order, but architecture, data model, flows, or technical approach -- exit plan mode, update the brainstorm doc first, commit it, then amend the plan to match, then re-enter plan mode for re-review. The brainstorm doc and plan must be consistent at the point of approval. Stage 1 of the plan ("update specs") derives from the brainstorm doc, so any design change that isn't captured there will be lost when agents execute.
 
 ## Step 4: Execution handoff
 
-After plan approval, call `AskUserQuestion`:
+After plan approval (`ExitPlanMode` accepted), call `AskUserQuestion`:
 - **Question:** "Plan approved and ready to execute. How do you want to proceed?"
 - **Options:** "Copy to clipboard (Recommended)" / "Execute in this session"
 

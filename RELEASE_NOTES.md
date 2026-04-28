@@ -1,3 +1,14 @@
+## v1.20.0 — 2026-04-27
+
+Norms check and plan-mode gate in brainstorm skill.
+
+**Updated**
+- `skills/brainstorm/SKILL.md` — New Step 7 "Norms check" between pre-mortem and propose-approaches: forces Claude to name the standard professional approach for the problem space (hashing for credential comparison, env vars for secrets, parameterized queries, idempotency keys, etc.) before proposing options, so users see industry defaults even when they didn't know to ask.
+- `skills/brainstorm/SKILL.md` — Phase 2 Step 3 now enters plan mode after the plan is committed; `ExitPlanMode` becomes the approval signal that hands off to execution. Prior steps remain free to write design docs.
+- `hooks/remind-session-topic.sh` — Updates synced from AI-RON.
+
+---
+
 ## v1.19.0 — 2026-04-15
 
 Skill dependency tracking and anutron-install skills.
