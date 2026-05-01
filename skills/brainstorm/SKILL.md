@@ -158,6 +158,21 @@ Ask after each section whether it looks right so far via `AskUserQuestion`. Be r
 - Apply Chesterton's Fence: understand why existing code exists before changing or removing it
 - Do not propose unrelated refactoring
 
+**Acceptance criteria per behavioral section:**
+
+For each design section that describes externally-observable behavior (what the system does for a user or caller), propose acceptance criteria as one-line `it should X` statements alongside the section. These crystallize the behavior into a reviewable, testable form before the design locks.
+
+Rules:
+
+- **Pair with behavioral sections only.** Skip sections that are pure architecture, rationale, convention, or technology choice. A section about "why we chose Postgres" gets no criteria; a section about "what the form does on submit" does.
+- **One criterion per distinct behavior.** Two criteria are distinct if you can imagine an implementation that satisfies one and fails the other. If you're varying inputs without varying behavior ("submits with name Alice" vs "submits with name Bob"), collapse them.
+- **Stop at redundancy.** Add criteria until the next one couldn't fail an implementation that satisfies the existing ones. Coverage is the constraint, not count — simple sections produce 1–2, complex sections produce more.
+- **Behavior, not internals.** "It should not lose messages on restart" is right; "it should use a queue" is wrong.
+
+If a section produces zero criteria and isn't pure architecture/rationale, that's a signal the section is too vague. Sharpen the section, not the criteria.
+
+Skip this entirely for design topics with no testable behavior (pure UX/content/visual decisions).
+
 ## Step 10: Write brainstorm doc
 
 Always written. Save to `specs/docs/<date>-<topic>/brainstorm.md` where `<date>` is today's date (YYYY-MM-DD) and `<topic>` is a short kebab-case descriptor.
@@ -169,6 +184,7 @@ Use `/spec-writer` if available to produce spec text. Commit the document immedi
 2. Internal consistency: do sections contradict each other? Does the architecture match the feature descriptions?
 3. Scope check: is this focused enough for a single implementation plan, or does it need decomposition?
 4. Ambiguity check: could any requirement be interpreted two ways? Pick one and make it explicit.
+5. Acceptance criteria coverage: does every behavioral section have its `it should X` criteria captured in the doc? Any behavioral section missing criteria, or any criterion that's about internals rather than observable behavior? Fix them. Skip this check for topics with no testable behavior.
 
 Fix issues inline. No need to re-review -- just fix and move on.
 
@@ -217,7 +233,7 @@ Update or create spec files from the brainstorm doc. <Describe which specs chang
 
 ### Stage 2: Write failing tests
 
-Write tests from the updated specs before any implementation. Tests must fail first -- this proves the behavioral gap exists (Prove-It Pattern).
+Write tests from the updated specs and the brainstorm doc's acceptance criteria before any implementation. Each `it should X` line in the brainstorm doc becomes at least one failing test. Tests must fail first -- this proves the behavioral gap exists (Prove-It Pattern).
 
 <Describe what gets tested, what the key assertions are, what frameworks to use.>
 

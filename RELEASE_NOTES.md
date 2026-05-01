@@ -1,3 +1,14 @@
+## v1.21.0 — 2026-04-30
+
+Acceptance criteria in brainstorm design phase.
+
+**Updated**
+- `skills/brainstorm/SKILL.md` — Step 9 ("Present design in sections") now pairs `it should X` acceptance criteria with each behavioral design section. Coverage rules: one criterion per distinct behavior, stop at redundancy, skip non-behavioral sections (architecture/rationale/conventions get none). Number scales naturally with design complexity — no artificial cap.
+- `skills/brainstorm/SKILL.md` — Step 10 self-review adds an acceptance-criteria coverage check.
+- `skills/brainstorm/SKILL.md` — Phase 2 Stage 2 ("Write failing tests") now derives tests directly from the brainstorm doc's acceptance criteria, so each `it should X` line becomes at least one failing test.
+
+---
+
 ## v1.20.0 — 2026-04-27
 
 Norms check and plan-mode gate in brainstorm skill.
