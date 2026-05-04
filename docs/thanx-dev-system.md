@@ -1,6 +1,10 @@
-# Thanx Approved Dev System
+# Thanx approved dev system
 
-A fast-launch blueprint for new Thanx applications. Based on Sketch (sketch.thanx.com) and Sherlock — the two reference implementations of the Thanx stack.
+> **OpenSpec workflow (v1.22.0+).** The skills described here now run on [OpenSpec](https://github.com/Fission-AI/OpenSpec). Specs live under `openspec/specs/<capability>/spec.md`, in-flight work lives in `openspec/changes/<name>/`, and the lifecycle is `change folder → deltas → tests → implement → archive`.
+>
+> **Want the previous workflow?** The [`legacy-spec-system`](https://github.com/anutron/claude-skills/tree/legacy-spec-system) tag points at the v1.21.0 commit – the last release using the `.specs`-based system. To migrate an existing legacy project, use [`/migrate-to-openspec`](../skills/migrate-to-openspec/SKILL.md).
+
+A fast-launch blueprint for new Thanx applications. Based on Sketch (sketch.thanx.com) and Sherlock – the two reference implementations of the Thanx stack.
 
 ---
 
@@ -60,7 +64,9 @@ devbox run setup:db
 │   ├── mysql80/my.cnf
 │   └── redis/redis.conf
 ├── .circleci/config.yml    # CI/CD pipeline
-├── specs/                  # SPEC files (if spec-driven)
+├── openspec/               # OpenSpec directory (if spec-driven)
+│   ├── specs/              # Base capability specs
+│   └── changes/            # In-flight changes (proposals, deltas, tasks)
 └── CLAUDE.md               # AI assistant instructions
 ```
 

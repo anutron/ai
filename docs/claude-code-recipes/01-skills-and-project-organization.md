@@ -2,6 +2,10 @@
 
 # Recipe 1: Skills and project organization
 
+> **OpenSpec workflow (v1.22.0+).** The skills described here now run on [OpenSpec](https://github.com/Fission-AI/OpenSpec). Specs live under `openspec/specs/<capability>/spec.md`, in-flight work lives in `openspec/changes/<name>/`, and the lifecycle is `change folder → deltas → tests → implement → archive`.
+>
+> **Want the previous workflow?** The [`legacy-spec-system`](https://github.com/anutron/claude-skills/tree/legacy-spec-system) tag points at the v1.21.0 commit – the last release using the `.specs`-based system. To migrate an existing legacy project, use [`/migrate-to-openspec`](../../skills/migrate-to-openspec/SKILL.md).
+
 When you start customizing Claude Code – writing skills, defining rules, configuring permissions – those customizations need to live somewhere you can iterate on them. If they live in `~/.claude/` (hidden in your home directory, where Claude often puts things out of sight), they're not in version control and can't be shared selectively.
 
 The better approach: **keep a personal project directory where you author and version-control your skills and rules.** This is your workshop. You start Claude Code in this directory when you want to build or refine your toolkit. From here, you selectively promote skills to be available globally (across all your projects) and selectively publish skills to be available to others in your organization.

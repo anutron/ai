@@ -1,3 +1,23 @@
+## v1.23.0 — 2026-05-04
+
+OpenSpec migration callouts in the docs and a `legacy-spec-system` rollback tag.
+
+**New**
+- Tag `legacy-spec-system` points at commit `85806d4` (= v1.21.0, the last release using the `.specs`-based workflow). Users who want the previous spec-driven system can `git checkout legacy-spec-system`.
+
+**Updated (docs)**
+- `README.md` — Spec-Driven Development section now opens with an OpenSpec callout and rollback-tag reference.
+- `docs/workflow-guide.md` — top-of-file callout; lifecycle order now reads `change folder → deltas → tests → implement → archive`; opt-in mechanism is `openspec init` instead of `.specs`.
+- `docs/thanx-dev-system.md` — top-of-file callout; project-tree example replaced `specs/` with `openspec/{specs,changes}/`.
+- `docs/stack-spectrum.md` — inline updates across Lightweight/Personal/CLI tier checklists and the shared-conventions table; `openspec init` replaces `.specs` opt-in.
+- `docs/claude-code-recipes/01-skills-and-project-organization.md` — top-of-file callout.
+- `docs/claude-code-recipes/02-design-to-execution-pipeline.md` — top-of-file callout; `/brainstorm` now scaffolds an OpenSpec change folder; `/execute-plan` takes a change name; spec-update step rewrites delta specs.
+
+**Notes**
+- No skill behavior changes – this release is purely documentation alignment with v1.22.0's OpenSpec migration.
+
+---
+
 ## v1.22.0 — 2026-05-04
 
 Spec-driven workflow migrates from legacy `.specs` to OpenSpec.

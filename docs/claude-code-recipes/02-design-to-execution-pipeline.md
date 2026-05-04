@@ -2,6 +2,10 @@
 
 # Recipe 2: The design-to-execution pipeline
 
+> **OpenSpec workflow (v1.22.0+).** The skills described here now run on [OpenSpec](https://github.com/Fission-AI/OpenSpec). Specs live under `openspec/specs/<capability>/spec.md`, in-flight work lives in `openspec/changes/<name>/`, and the lifecycle is `change folder → deltas → tests → implement → archive`.
+>
+> **Want the previous workflow?** The [`legacy-spec-system`](https://github.com/anutron/claude-skills/tree/legacy-spec-system) tag points at the v1.21.0 commit – the last release using the `.specs`-based system. To migrate an existing legacy project, use [`/migrate-to-openspec`](../../skills/migrate-to-openspec/SKILL.md).
+
 ## The idea
 
 The natural instinct with an AI coding tool is to say "build me X" and let it go. This works for small tasks, but for anything substantial it produces code that doesn't match what you actually wanted – and you don't discover the mismatch until you're deep into debugging.
@@ -16,23 +20,25 @@ The fix is a document-driven pipeline that captures intent before code gets writ
 
 The brainstorm phase is a structured conversation between the user and Claude that produces a document capturing **what you want to change and why**. It's not a plan – it doesn't say how to build anything. It's a contract about intent.
 
-A good brainstorm doc surfaces assumptions early, explores 2-3 approaches, and records the chosen direction with reasoning. It gets committed to git immediately.
+A good brainstorm doc surfaces assumptions early, explores 2-3 approaches, and records the chosen direction with reasoning. It gets committed to git immediately. In the OpenSpec workflow, `/brainstorm` scaffolds an OpenSpec change folder under `openspec/changes/<name>/` containing `proposal.md`, `design.md`, `tasks.md`, and delta specs at `openspec/changes/<name>/specs/<capability>/spec.md`.
 
 > **Skills:** [`/brainstorm`](https://github.com/anutron/claude-skills) is the primary tool here. For blank-slate projects where you're starting from nothing, [`/kickoff`](https://github.com/anutron/claude-skills) runs a focused discovery conversation (project goals, stack selection) and then hands off to `/brainstorm` automatically – you don't need to invoke them separately. [`/interview`](https://github.com/anutron/claude-skills) is a separate skill useful when you need to extract domain knowledge from a person before designing anything.
 
 ### Plan → strategy
 
-The plan reads the brainstorm doc and produces an execution strategy. It says which files to change, in what order, and what "done" looks like for each step.
+The plan reads the brainstorm doc and produces an execution strategy. It says which files to change, in what order, and what "done" looks like for each step. In the OpenSpec workflow this lives in `openspec/changes/<name>/tasks.md`.
 
-The first step in every plan is the same: **update the specification to reflect the new intent.** If the brainstorm doc says button color should be configurable, step one of the plan is to go find the spec that says buttons are red and change it to say the color is configurable. The spec changes before the code does.
+The first step in every plan is the same: **update the delta specs to reflect the new intent.** If the brainstorm doc says button color should be configurable, step one of the plan is to update the delta spec at `openspec/changes/<name>/specs/<capability>/spec.md` before any code is written. The spec changes before the code does.
 
-> **Skills:** `/brainstorm` produces the plan as its second phase. [`/execute-plan`](https://github.com/anutron/claude-skills) takes an approved plan and orchestrates implementation – dispatching agents, managing dependencies, and ensuring each stage completes before the next begins.
+> **Skills:** `/brainstorm` produces `tasks.md` as part of the change folder. [`/execute-plan`](https://github.com/anutron/claude-skills) takes an OpenSpec change name and orchestrates implementation – dispatching agents, managing dependencies, and ensuring each stage completes before the next begins.
 
 ### Specifications → truth
 
 Specs describe the system's behavior from the outside – what it does, not how it's built. "Button color is configurable by the user" is a spec statement. "There's a `colorConfig` prop on the Button component" is an implementation detail that doesn't belong in a spec.
 
 The spec is the only artifact that matters for understanding **what is true right now**. Brainstorm docs and plans are history – they explain how you got here. The spec is the present tense.
+
+In the OpenSpec workflow, base specs live at `openspec/specs/<capability>/spec.md` and represent the current state of the system. In-flight changes carry delta specs at `openspec/changes/<name>/specs/<capability>/spec.md` that describe the future state. When a change is complete, `openspec archive <name>` merges the deltas into the base specs and removes the change folder.
 
 Key properties of specs:
 
@@ -81,7 +87,7 @@ The bootstrap process:
 
 3. **Commit the baseline.** Once confirmed, these become your specs. They represent what is true today, whether or not it was originally intentional.
 
-4. **Enter the loop.** From here forward, changes flow through the pipeline: brainstorm → plan → spec update → code.
+4. **Enter the loop.** From here forward, changes flow through the pipeline: change folder → deltas → tests → implement → archive.
 
 This survey can be done incrementally – you don't need to spec the entire codebase at once. Start with the areas you're actively changing and expand coverage over time.
 
@@ -98,7 +104,7 @@ Every artifact in the pipeline must be in version control. This isn't about tidi
 
 Without version control, the pipeline is just a conversation that evaporates when the session ends.
 
-**Important note on plans:** By default, Claude Code's native `/plan` mode stores plans in `~/.claude/` – the user's home directory, outside the project. This means plans are invisible to git and lost when the session ends. To make plans durable, your CLAUDE.md rules should instruct Claude to write plans into the project's working directory (e.g., `specs/docs/`) and commit them. The brainstorm skill described here does this automatically, but if you're using Claude's built-in planning, you need to configure this explicitly.
+**Important note on plans:** By default, Claude Code's native `/plan` mode stores plans in `~/.claude/` – the user's home directory, outside the project. This means plans are invisible to git and lost when the session ends. To make plans durable, use `/brainstorm` (which stores `tasks.md` inside the change folder at `openspec/changes/<name>/tasks.md`) or configure your CLAUDE.md to write plans into the project directory and commit them.
 
 ---
 
@@ -119,19 +125,20 @@ Without version control, the pipeline is just a conversation that evaporates whe
          │  User intent                               │
          │      │                                     │
          │      ▼                                     │
-         │  Brainstorm doc (what + why)               │
+         │  Change folder created (proposal.md,       │
+         │  design.md, tasks.md + delta specs)        │
          │      │                                     │
          │      ▼                                     │
-         │  Plan (how, step 1 = update spec)          │
+         │  Delta specs updated (truth moves forward) │
          │      │                                     │
          │      ▼                                     │
-         │  Spec updated (truth moves forward)        │
-         │      │                                     │
-         │      ▼                                     │
-         │  Tests written from spec                   │
+         │  Tests written from deltas                 │
          │      │                                     │
          │      ▼                                     │
          │  Code implemented to pass tests            │
+         │      │                                     │
+         │      ▼                                     │
+         │  openspec archive → deltas merged to base  │
          │      │                                     │
          │      ▼                                     │
          │  All artifacts committed to git            │
@@ -154,7 +161,7 @@ These skills are available at [github.com/anutron/claude-skills](https://github.
 | Stage | Skills | Purpose |
 |-------|--------|---------|
 | Starting from scratch | `/kickoff`, `/interview` | Discovery, domain knowledge extraction |
-| Intent capture | `/brainstorm` | Structured design conversation → brainstorm.md + plan.md |
+| Intent capture | `/brainstorm` | Structured design conversation → OpenSpec change folder (proposal, design, tasks, delta specs) |
 | Spec writing | `/spec-writer` | Produces spec text in consistent format |
 | Spec bootstrap | `/spec-recommender` | Proposes specs from existing code (use iteratively for surveys) |
 | Spec coverage | `/spec-audit` | Audits codebase for unspecified behavior |
@@ -168,29 +175,24 @@ These skills are available at [github.com/anutron/claude-skills](https://github.
 
 ```
 project/
-├── .specs                    # Marker file; presence opts the project into spec-driven dev
-├── specs/
-│   ├── feature-name.md       # Individual spec files (one per feature/component)
-│   ├── docs/
-│   │   └── YYYY-MM-DD-topic/
-│   │       ├── brainstorm.md # Captured intent
-│   │       └── plan.md       # Execution strategy
-│   └── plans/
-│       └── descriptive-name.md  # Archived plans (post-implementation reference)
+├── openspec/                 # Presence of this directory opts the project into spec-driven dev
+│   ├── specs/
+│   │   └── <capability>/
+│   │       └── spec.md       # Base spec for a capability (source of truth)
+│   └── changes/
+│       └── <name>/
+│           ├── proposal.md   # Why this change is happening
+│           ├── design.md     # How it will be built
+│           ├── tasks.md      # Execution plan (step-by-step)
+│           └── specs/
+│               └── <capability>/
+│                   └── spec.md  # Delta spec (future state during this change)
 └── ...
 ```
 
-### The `.specs` marker file
+### Opting in
 
-A one-line file at the project root that opts into spec-driven development:
-
-```
-dir: specs
-```
-
-The `dir` field specifies where specs live (defaults to `specs/`). Detection is trivial: `test -f .specs && cat .specs`.
-
-Projects without a `.specs` file do not use this pipeline. When working in a project that lacks one, recommend adding it.
+Detection is trivial: `test -d openspec`. Projects without an `openspec/` directory do not use this pipeline. When working in a project that lacks one, recommend running `openspec init` (or `/migrate-to-openspec` if a legacy `.specs`-based system is present).
 
 ### Spec format
 
@@ -201,57 +203,48 @@ Specs describe interface behavior, not implementation:
 - **Behavior** – What happens from the user's perspective
 - **Test cases** – Concrete scenarios that validate the spec
 
-Consider adopting an established spec format like [OpenSpec](https://github.com/Fission-AI/OpenSpec/) for consistency across teams.
+This follows the [OpenSpec](https://github.com/Fission-AI/OpenSpec/) format for consistency across teams.
 
-### Brainstorm docs
+### Brainstorm docs and design artifacts
 
-Written during the brainstorm phase, committed immediately. Path: `specs/docs/YYYY-MM-DD-topic/brainstorm.md`.
-
-Key properties:
-- Records the user's intent, not Claude's interpretation
-- Surfaces and resolves assumptions before any code is discussed
-- Explores multiple approaches, recommends one
-- Becomes the input for plan creation
-
-### Plans
-
-Written after the brainstorm doc is committed. Path: `specs/docs/YYYY-MM-DD-topic/plan.md`.
-
-**Important:** Claude Code's native `/plan` mode stores plans in `~/.claude/`, outside the project and invisible to git. Configure your CLAUDE.md to instruct Claude to write plans into the project directory (e.g., `specs/docs/`) and commit them. The `/brainstorm` skill does this automatically, but if using built-in planning, add a rule like:
-
-```markdown
-## Plan storage
-Plans must be written to `specs/docs/YYYY-MM-DD-topic/plan.md` and committed to git.
-Never store plans in ~/.claude/ – they must live in the project repository.
-```
+Written during the brainstorm phase, committed immediately as part of the change folder at `openspec/changes/<name>/`.
 
 Key properties:
-- References the brainstorm doc via a `Design doc:` header field
-- Step 1 is always: update specs to reflect new intent
+- `proposal.md` – records the user's intent, not Claude's interpretation; surfaces and resolves assumptions
+- `design.md` – explores multiple approaches, recommends one
+- `tasks.md` – the execution plan; step 1 is always to update the delta specs before any code is written
+- Delta specs at `openspec/changes/<name>/specs/<capability>/spec.md` describe the future state
+
+**Important:** Claude Code's native `/plan` mode stores plans in `~/.claude/`, outside the project and invisible to git. The `/brainstorm` skill writes `tasks.md` directly into the change folder and commits it automatically.
+
+Key properties of `tasks.md`:
+- References the brainstorm artifacts
+- Step 1 is always: update delta specs to reflect new intent
 - Subsequent steps are vertical slices (complete end-to-end paths, not horizontal layers)
 - Each step specifies: files touched, dependencies, done criteria
-- If the plan needs to deviate from the brainstorm, update the brainstorm doc first
+- If the plan needs to deviate, update `proposal.md` or `design.md` first
 
-After implementation, plans are archived to `specs/plans/` with a descriptive filename for future reference.
+After implementation, run `openspec archive <name>` to merge deltas into base specs. The change folder is removed.
 
 ### Bootstrap workflow
 
 When a user wants to adopt specs on an existing codebase:
 
-1. Identify significant components (routes, models, services, CLI commands)
-2. For each component, use `/spec-recommender` to read the code and propose a spec
-3. Present each proposed spec to the user for confirmation or correction
-4. Use `/spec-writer` to produce the final spec text
-5. Commit confirmed specs as the baseline
-6. From this point forward, follow the brainstorm → plan → spec → code pipeline
+1. Run `openspec init` to scaffold the `openspec/` directory (or `/migrate-to-openspec` from a legacy `.specs` system)
+2. Identify significant components (routes, models, services, CLI commands)
+3. For each component, use `/spec-recommender` to read the code and propose a spec
+4. Present each proposed spec to the user for confirmation or correction
+5. Use `/spec-writer` to produce the final spec text at `openspec/specs/<capability>/spec.md`
+6. Commit confirmed specs as the baseline
+7. From this point forward, follow the change folder → deltas → tests → implement → archive lifecycle
 
 Do not attempt to spec the entire codebase at once – start with areas under active development.
 
 ### Spec maintenance rules
 
-- Update specs before or on the same turn as any behavioral change – never batch for later
-- If a brainstorm or plan execution produces code that wasn't explicitly in the spec but is easily inferred, fill in the gap and confirm with the user
+- Update delta specs before or on the same turn as any behavioral change – never batch for later
+- If implementation produces behavior not explicitly in the delta spec but easily inferred, fill in the gap and confirm with the user
 - After every commit, report spec status:
-  - `Specs: Updated (specs/foo.md)` – spec changes included
+  - `Specs: Updated (openspec/changes/<name>/specs/<cap>/spec.md)` – delta changes included
   - `Specs: No behavioral changes` – config/docs/cosmetic only
-  - `Specs: Skipped (no .specs file)` – project doesn't use specs
+  - `Specs: Skipped (no openspec/ dir)` – project doesn't use OpenSpec

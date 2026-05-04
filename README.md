@@ -127,6 +127,10 @@ This scans the repo and presents a report of what's worth stealing. You choose w
 
 ## Spec-Driven Development
 
+> **As of v1.22.0 the spec-driven workflow runs on [OpenSpec](https://github.com/Fission-AI/OpenSpec).** Specs live under `openspec/specs/<capability>/spec.md`, in-flight work lives in `openspec/changes/<name>/`, and the lifecycle is `change folder → deltas → tests → implement → archive`. The rewritten skills (`/brainstorm`, `/execute-plan`, `/save-w-specs`, `/ralph-review`, `/spec-audit`, `/spec-writer`, `/spec-recommender`, `/spec-todo`) operate on this layout.
+>
+> **Want the previous, `.specs`-based workflow?** Check out the [`legacy-spec-system`](https://github.com/anutron/claude-skills/tree/legacy-spec-system) tag — it points at the v1.21.0 commit, the last release before the OpenSpec conversion. Existing legacy `.specs` projects keep working against the rewritten skills (they exit cleanly when no `openspec/` directory is present); to migrate, use [`/migrate-to-openspec`](skills/migrate-to-openspec/SKILL.md).
+
 The core idea: **specs describe what you're building before you build it.** If the spec and the code disagree, the code has a bug.
 
 ### Why specs?
@@ -153,7 +157,7 @@ For new features, use `/brainstorm` to explore the design space before committin
 
 The spec says *what*. The plan says *how* and *in what order*. Plans break specs into ordered implementation steps, each small enough to verify independently. A good plan makes implementation mechanical.
 
-Plans are archived in `specs/plans/` so architectural decisions are preserved for future sessions.
+In OpenSpec the plan IS the change folder's `tasks.md`, archived by `openspec archive <name>` at the end of the change.
 
 **3. Plan → Test**
 

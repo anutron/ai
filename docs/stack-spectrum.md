@@ -42,8 +42,7 @@ A web app in a handful of files. HTML, CSS, JavaScript — no database, no serve
 ├── assets/               # Images, icons
 ├── tests/
 │   └── *.test.ts         # Unit tests (if logic warrants it)
-├── .specs                # If spec-driven
-├── specs/                # SPEC files
+├── openspec/             # If spec-driven (OpenSpec)
 └── CLAUDE.md
 ```
 
@@ -91,7 +90,7 @@ No server required. If you need to serve it (e.g., for CORS or routing), `npx se
 - [ ] Add React via CDN if you need components
 - [ ] Add Tailwind via CDN Play if you want utility classes
 - [ ] Write CLAUDE.md with project-specific instructions
-- [ ] Add `.specs` file (if spec-driven)
+- [ ] Run `openspec init` if using spec-driven development
 
 ---
 
@@ -141,8 +140,7 @@ A personal app doesn't need a separate API server. Next.js API routes handle the
 ├── jest.config.ts
 ├── jest.setup.ts
 ├── .env.local                  # Local config (gitignored)
-├── .specs                      # If spec-driven
-├── specs/                      # SPEC files
+├── openspec/                   # If spec-driven (OpenSpec)
 └── CLAUDE.md
 ```
 
@@ -467,9 +465,8 @@ DATABASE_URL="mysql://root@localhost:3306/<app-name>_dev"
 - [ ] `npx prisma migrate dev --name init`
 - [ ] Set up Jest: `jest.config.ts` + `jest.setup.ts`
 - [ ] Create `src/__tests__/` directory structure
-- [ ] Add `.specs` file (if spec-driven)
+- [ ] Run `openspec init` if using spec-driven development
 - [ ] Write CLAUDE.md with project-specific instructions
-- [ ] Install pre-commit hook: `ln -sf <path-to-claude-skills>/scripts/spec-check-hook.sh .git/hooks/pre-commit`
 
 ---
 
@@ -607,8 +604,7 @@ If the primary interaction is a terminal command (fetch data, run a process, aut
 ├── go.mod
 ├── go.sum
 ├── Makefile                     # Build, install, test
-├── .specs
-├── specs/
+├── openspec/                    # If spec-driven (OpenSpec)
 └── CLAUDE.md
 ```
 
@@ -662,8 +658,7 @@ func TestParseInput(t *testing.T) {
 - [ ] `go get github.com/spf13/cobra`
 - [ ] Create Makefile with build, install, test targets
 - [ ] Write CLAUDE.md
-- [ ] Add `.specs` file (if spec-driven)
-- [ ] Install pre-commit hook: `ln -sf {{CLAUDE_RULES_DIR}}/scripts/spec-check-hook.sh .git/hooks/pre-commit`
+- [ ] Run `openspec init` if using spec-driven development
 
 ---
 
@@ -675,5 +670,5 @@ func TestParseInput(t *testing.T) {
 | Linting | ESLint (tiers 2-4) |
 | Package manager | npm (when applicable) |
 | Git | Commit every logical unit of work |
-| Specs | `.specs` file opts in to spec-driven development |
+| Specs | `openspec/` directory opts in to spec-driven development (OpenSpec) |
 | CLAUDE.md | Every project gets one |
