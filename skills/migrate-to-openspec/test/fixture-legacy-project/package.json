@@ -1,0 +1,9 @@
+{
+  "name": "fixture-legacy-project",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Synthetic legacy spec project used by the migrate-to-openspec test harness.",
+  "scripts": {
+    "test": "echo no tests"
+  }
+}

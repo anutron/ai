@@ -18,7 +18,7 @@ If no arguments provided, reply: `Usage: /fixit <describe the bug>` and stop.
 - Current branch: !`git branch --show-current`
 - Project root: !`pwd`
 - Main repo root: !`git worktree list --porcelain 2>/dev/null | head -1 | sed 's/^worktree //'`
-- Spec-aware project: !`test -f .specs && cat .specs || echo "no .specs file"`
+- OpenSpec project: !`test -d openspec && echo "yes" || echo "no"`
 
 ---
 
@@ -68,22 +68,37 @@ Use the `Agent` tool with `run_in_background: true` and `mode: "bypassPermission
 ### Files Likely Involved
 <from triage search, or "Explore the codebase to find the relevant code">
 
-### Spec-Aware Project
-<if .specs file exists in project root>
-This project uses specs. The spec directory is: <dir from .specs file, default "specs">
+### Spec-aware project
+<if openspec/ directory exists at the project root>
+This project uses OpenSpec.
 
-**You MUST follow spec-first order:**
-1. Find the relevant spec in the specs directory
-2. Add the bug's failing case to the spec
-3. Write/update a test that reproduces the bug
-4. Implement the fix to pass the test
+**Classify the bug before writing any code:**
+
+- **Code drift** – the spec is correct; the code diverged from it.
+- **Spec gap** – the spec does not cover the case this bug exposes; the expected behavior is new or missing.
+
+**Code drift path:**
+1. Identify the relevant base spec at `openspec/specs/<capability>/spec.md`
+2. Confirm the spec describes the correct behavior the code should follow
+3. Fix the code so it matches the existing base spec
+4. Write or update a test that validates the correct behavior
 5. Run all tests
-6. Commit with message: "Fix: <short description>"
+6. Commit with `--no-verify` (no delta update is needed; include a note in the commit message explaining this is a drift fix, not a new capability)
 
-Include the spec file in your commit.
-</if .specs file exists>
-<if no .specs file>
-No spec management required.
+**Spec gap path:**
+1. Identify the capability name from the description, affected files, or failing test
+2. Scaffold a change folder: `openspec new change fix-<short-slug>`
+3. Write a delta at `openspec/changes/fix-<short-slug>/specs/<capability>/spec.md` that adds or modifies the relevant requirement and at least one scenario
+4. Validate: `openspec validate fix-<short-slug> --strict`
+5. Write a failing test that captures the new scenario
+6. Implement the fix to pass the test
+7. Run all tests
+8. Commit with the delta file included alongside the code
+
+Either path: include all delta or spec files (if any) in the commit.
+</if openspec/ directory exists>
+<if no openspec/ directory>
+No spec management required. Implement the fix directly.
 </if>
 
 ### Debugging References
@@ -154,7 +169,7 @@ Report to user:
 ```
 ✅ Fixit merged: <short title>
   <1-2 line summary of what the agent changed>
-  📋 Specs: <Updated (specs/foo.md) | No behavioral change | Skipped (no .specs file)>
+  📋 Specs: <Updated (openspec/changes/<name>/specs/<cap>/spec.md) | No behavioral changes | Code drift fixed | Skipped (no openspec/ dir)>
 ```
 
 **If merge conflicts:**

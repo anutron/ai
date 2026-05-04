@@ -1,11 +1,11 @@
 ---
 name: spec-todo
-description: "List, pick, and execute deferred work items from specs/todo/. Use when the user asks about backlog, deferred work, or what needs doing."
+description: "List, pick, and execute deferred work items from .workflow/todo/. Use when the user asks about backlog, deferred work, or what needs doing."
 ---
 
-# Spec Todo
+# Spec todo
 
-List and execute deferred work items. Items are created by `/ralph-review`, `/bugbash`, or manually — small marker files in `specs/todo/` that point to detailed analysis elsewhere.
+List and execute deferred work items. Items are created by `/ralph-review`, `/bugbash`, or manually — small marker files in `.workflow/todo/` that point to detailed analysis elsewhere.
 
 ## Arguments
 
@@ -21,20 +21,22 @@ Invocation forms:
 
 ## Context
 
-- Spec-aware project: !`test -f .specs && cat .specs || echo "no .specs file"`
-- Todo directory: !`ls specs/todo/*.md 2>/dev/null | head -20 || echo "(empty)"`
+- OpenSpec project: !`test -d openspec && echo "yes" || echo "no"`
+- Todo directory: !`ls .workflow/todo/*.md 2>/dev/null | head -20 || echo "(empty)"`
 - Current branch: !`git branch --show-current`
 
 ---
 
 ## Mode: List (default)
 
-If `specs/todo/` is empty or doesn't exist, print "No deferred items." and stop.
+If the project has no `openspec/` directory, tell the user this skill only works in OpenSpec projects and stop.
+
+If `.workflow/todo/` is empty or doesn't exist, print "No deferred items." and stop.
 
 Otherwise, read each marker file and display a summary table:
 
 ```
-Deferred work items (specs/todo/):
+Deferred work items (.workflow/todo/):
 
   # | Created    | Severity | Title                          | Source
   1 | 2026-03-29 | medium   | Data race in plugin state      | ralph-review
@@ -80,7 +82,7 @@ Create a new marker file manually:
 4. Create the marker file:
 
 ```bash
-mkdir -p specs/todo
+mkdir -p .workflow/todo
 ```
 
 ```markdown
@@ -101,7 +103,7 @@ files: []
 
 ## Rules
 
-- This skill only works in spec-aware projects (`.specs` file exists). If no `.specs` file, tell the user and stop.
+- This skill only works in OpenSpec projects (`openspec/` directory exists). If no `openspec/` directory, tell the user and stop.
 - Never modify the source report — it's historical record.
 - Always delete marker files when work is completed, not before.
-- The `specs/todo/` directory should be committed to git so it's visible across sessions.
+- The `.workflow/todo/` directory should be committed to git so it's visible across sessions.

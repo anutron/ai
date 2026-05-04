@@ -28,7 +28,7 @@ If agent teams are not enabled, report: "Agent teams required. Add `CLAUDE_CODE_
 - Current branch: !`git branch --show-current`
 - Git status: !`git status --short`
 - Project root: !`pwd`
-- Spec-aware project: !`test -f .specs && cat .specs || echo "no .specs file"`
+- OpenSpec project: !`test -d openspec && echo "yes" || echo "no"`
 - Existing bugs: !`for d in todo in-progress blocked merged verified failed conflict; do files=$(find .bug-bash/$d -name 'bug-*.md' 2>/dev/null); [ -n "$files" ] && echo "[$d]" && echo "$files"; done; true`
 
 ---
@@ -325,19 +325,34 @@ For debugging, also read:
 <from bug.md, or "Explore the codebase to find the relevant code">
 
 ### Spec-Aware Project
-<if .specs file exists in project root>
-This project uses specs. The spec directory is: <dir from .specs file, default "specs">
+<if openspec/ directory exists at project root>
+This project uses OpenSpec. Follow OpenSpec spec-first order:
 
-**You MUST follow spec-first order:**
-1. Find the relevant spec in the specs directory
-2. Add the bug's failing case to the spec
-3. Write/update a test that reproduces the bug
-4. Implement the fix to pass the test
-5. Include the spec file in your commit
-</if .specs file exists>
-<if no .specs file>
-No spec management required.
-</if>
+**Step 1 – Classify the bug:**
+Determine whether this bug is a _code drift_ or a _spec gap_:
+- **Code drift** – the base spec at `openspec/specs/<capability>/spec.md` already covers the expected behavior, but the code drifted away from it.
+- **Spec gap** – the base spec does not cover the scenario this bug exposes; the spec needs a new or modified requirement.
+
+The capability name is usually apparent from the bug description, the affected files, or the failing test. Look for the relevant base spec under `openspec/specs/`.
+
+**Step 2a – Code drift path:**
+1. Fix the code so it matches the existing base spec.
+2. No delta is needed – the spec was never wrong.
+3. Commit with `--no-verify` (the pre-commit hook gates on active-change deltas; drift fixes have no spec change to record). Note in the commit message that this is a drift fix, e.g. "Fix BUG-<NNN>: restore behavior to match existing spec".
+
+**Step 2b – Spec gap path:**
+1. Scaffold a change folder: `openspec new change fix-bug-<NNN>`
+2. Write a delta at `openspec/changes/fix-bug-<NNN>/specs/<capability>/spec.md` that adds or modifies the relevant requirement and scenario.
+3. Write or update a failing test that reproduces the bug.
+4. Implement the fix to pass the test.
+5. Run `openspec validate fix-bug-<NNN> --strict` before committing.
+6. Include all delta and code files in the commit: "Fix BUG-<NNN>: <title>"
+
+**Either path:** include spec delta files (if any) alongside the code in the commit.
+</if openspec/ directory exists>
+<if no openspec/ directory>
+No spec management required. Implement the fix directly.
+</if no openspec/ directory>
 
 ### Investigation Findings
 <from the ## Investigation section of the bug file, if present>
@@ -427,7 +442,7 @@ git merge bug-bash/BUG-<NNN> --no-edit
   ```
   BUG-<NNN> merged: <title>
     <1-line summary of what the agent did>
-    📋 Specs: <Updated (specs/foo.md) | Skipped (no .specs file)>
+    📋 Specs: <Updated (openspec/changes/<name>/specs/<cap>/spec.md) | No behavioral changes | Code drift fixed | Skipped (no openspec/ dir)>
   ```
 
 **If merge conflicts:**

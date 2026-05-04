@@ -1,3 +1,33 @@
+## v1.22.0 — 2026-05-04
+
+Spec-driven workflow migrates from legacy `.specs` to OpenSpec.
+
+**New**
+- `skills/migrate-to-openspec/` — One-time migration tool that converts a legacy `.specs` project to OpenSpec layout with verifiable fidelity. Translator + verifier agents preserve every Given/When/Then case as an OpenSpec scenario; originals archive at `.workflow/legacy-specs/` with forwarding banners. Default cap of 20 parallel agents per wave.
+- `claude-rules/snippets/global/085-openspec-migration-prompt.md` — Suggests `/migrate-to-openspec` when encountering a legacy `.specs` project.
+
+**Updated (OpenSpec rewrites)**
+- `skills/brainstorm/SKILL.md` — Now scaffolds an OpenSpec change folder (`openspec/changes/<name>/proposal.md`, `design.md`, `tasks.md`, plus delta specs at `specs/<capability>/spec.md`) instead of writing legacy `specs/foo.md`.
+- `skills/execute-plan/SKILL.md` — Argument is now an OpenSpec change name, not a plan path. Loads the change via `openspec show`, parses `tasks.md` into a stage graph, dispatches per-stage agents in worktrees, and runs `openspec archive` at the end.
+- `skills/save-w-specs/SKILL.md` — Gates commits on whether an active OpenSpec change's deltas describe the diff. Five-step active-change inference (single change → use it, multiple → branch match, otherwise ask).
+- `skills/ralph-review/SKILL.md` — Compares implementation against the active change's deltas instead of legacy specs. Adds `openspec validate` as a pre-flight check.
+- `skills/spec-audit/SKILL.md` — Inventories OpenSpec capabilities via `openspec list --specs`, excludes active-change deltas from the audit corpus.
+- `skills/spec-writer/SKILL.md` — Thin orchestrator around `openspec instructions <artifact>` (proposal/design/tasks/specs).
+- `skills/spec-recommender/SKILL.md` — Recommends OpenSpec capabilities + requirements; output points at `openspec instructions specs`.
+- `skills/spec-todo/SKILL.md` — Reads from `.workflow/todo/` instead of `specs/todo/`. Detects via `test -d openspec`.
+- `skills/fixit/SKILL.md` — Spec-aware section now uses OpenSpec: agents classify bugs as code drift (fix code, no delta needed, commit `--no-verify`) or spec gap (scaffold a fix-change folder with deltas).
+- `skills/bugbash/SKILL.md` — Same OpenSpec spec-aware flow as fixit, applied per-bug.
+- `claude-rules/snippets/global/080-spec-driven-dev.md` — Rewritten to describe OpenSpec spec-first order: change folder → deltas → tests → implement → archive.
+- `claude-rules/snippets/global/090-plan-archiving.md` — Stubbed; superseded by OpenSpec's own archive flow.
+- `claude-rules/snippets/global/040-plan-execution-handoff.md` — Updated for OpenSpec.
+
+**Notes**
+- Existing legacy `.specs` projects continue to work; the rewritten skills exit cleanly when no `openspec/` directory is present.
+- `migrate-to-openspec` is a one-time-per-project op. Originals are preserved under `.workflow/legacy-specs/`.
+- Pre-commit hook (`scripts/spec-check-hook.sh`) now gates on active-change deltas at `openspec/changes/<name>/specs/<capability>/spec.md` instead of `specs/*.md`.
+
+---
+
 ## v1.21.0 — 2026-04-30
 
 Acceptance criteria in brainstorm design phase.

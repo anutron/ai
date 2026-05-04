@@ -185,20 +185,21 @@ That's it. One line. The `dir` field says where specs live (defaults to `specs/`
 
 | Skill | What it does |
 |-------|-------------|
-| [spec-writer](skills/spec-writer/SKILL.md) | Write properly formatted spec text — single source of truth for the SPEC format |
-| [spec-recommender](skills/spec-recommender/SKILL.md) | Detect code without spec coverage, infer intent, present options |
-| [spec-audit](skills/spec-audit/SKILL.md) | Audit codebase spec coverage — inventory files and specs, map them, find behavioral gaps |
-| [spec-todo](skills/spec-todo/SKILL.md) | List and execute deferred work items from `specs/todo/` |
-| [ralph-review](skills/ralph-review/SKILL.md) | Autonomous review loop — compares code against specs, auto-fixes, flags drift |
-| [save-w-specs](skills/save-w-specs/SKILL.md) | Spec-aware commits — verifies specs updated alongside behavioral changes |
+| [migrate-to-openspec](skills/migrate-to-openspec/SKILL.md) | One-time migration from a legacy `.specs` project to OpenSpec — preserves Given/When/Then fidelity, archives originals at `.workflow/legacy-specs/` |
+| [spec-writer](skills/spec-writer/SKILL.md) | Thin orchestrator around `openspec instructions <artifact>` — returns enriched proposal/design/tasks/specs templates with project context |
+| [spec-recommender](skills/spec-recommender/SKILL.md) | Detect code without spec coverage, infer intent, recommend OpenSpec capabilities + requirements |
+| [spec-audit](skills/spec-audit/SKILL.md) | Audit OpenSpec coverage — inventory capabilities, map to code, dispatch agents to find behavioral gaps |
+| [spec-todo](skills/spec-todo/SKILL.md) | List and execute deferred work items from `.workflow/todo/` |
+| [ralph-review](skills/ralph-review/SKILL.md) | Autonomous review loop — compares implementation against the active OpenSpec change's deltas, auto-fixes, parks questions |
+| [save-w-specs](skills/save-w-specs/SKILL.md) | Spec-aware commits — verifies behavioral code changes carry deltas in an active OpenSpec change |
 | [plannotator-specs](skills/plannotator-specs/SKILL.md) | Interactive spec review with inline annotations (requires [Plannotator](https://github.com/anutron/plannotator)) |
 
 **3. Install the rules.** Copy the relevant rule snippets to your project's CLAUDE.md (or use the [snippet compilation system](claude-rules/README.md)):
 
 | Rule | What it does |
 |------|-------------|
-| [080-spec-driven-dev](claude-rules/snippets/global/080-spec-driven-dev.md) | Enforces spec-first order: spec → test → implement |
-| [090-plan-archiving](claude-rules/snippets/global/090-plan-archiving.md) | Archives approved plans to `specs/plans/` |
+| [080-spec-driven-dev](claude-rules/snippets/global/080-spec-driven-dev.md) | Enforces OpenSpec spec-first order: change folder → deltas → tests → implement → archive |
+| [085-openspec-migration-prompt](claude-rules/snippets/global/085-openspec-migration-prompt.md) | Suggests `/migrate-to-openspec` when encountering legacy `.specs` projects |
 | [040-plan-execution-handoff](claude-rules/snippets/global/040-plan-execution-handoff.md) | What to do after plan approval — archive, execute, or hand off |
 | [070-testing](claude-rules/snippets/global/070-testing.md) | Test-driven development defaults |
 
@@ -286,6 +287,7 @@ These skills describe how agents should think and work. They're loaded by refere
 | [software-best-practices](skills/software-best-practices/SKILL.md) | Use after completing implementation to validate code quality -- checks tests, linting, run scripts, error handling, executes code and iterates until success |
 | [steal](skills/steal/SKILL.md) | Use when the user wants to find reusable skills, patterns, or techniques from other repos -- scans tracked GitHub repos or evaluates new ones |
 | [list-skills](skills/list-skills/SKILL.md) | Use when you need a reminder of your toolkit -- quick reference of all available skills |
+| [migrate-to-openspec](skills/migrate-to-openspec/SKILL.md) | Convert a legacy `.specs` project to OpenSpec layout with verifiable fidelity -- one-time per project |
 
 ---
 
@@ -307,8 +309,9 @@ See [claude-rules/README.md](claude-rules/README.md) for setup.
 | `055-session-topics` | Set status line topics for session identification |
 | `060-plannotator-spec-review` | Interactive spec review via Plannotator |
 | `070-testing` | Test-driven development defaults |
-| `080-spec-driven-dev` | Spec-first development process |
-| `090-plan-archiving` | Archive approved plans to `specs/plans/` |
+| `080-spec-driven-dev` | OpenSpec spec-first process — change folder, deltas, tests, archive |
+| `085-openspec-migration-prompt` | Suggests `/migrate-to-openspec` for legacy `.specs` projects |
+| `090-plan-archiving` | Stub — superseded by OpenSpec; legacy plans live at `.workflow/plans/` |
 
 ---
 

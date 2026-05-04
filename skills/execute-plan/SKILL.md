@@ -1,23 +1,23 @@
 ---
 name: execute-plan
-description: "Use when you have an approved plan ready to implement — executes with agent-driven development, worktree isolation, TDD discipline, two-stage review, and native Task dependencies for parallel execution"
+description: "Use when an OpenSpec change is approved and ready to implement — executes the change's tasks.md with agent-driven development, worktree isolation, TDD discipline, two-stage review, native Task dependencies for parallel execution, and `openspec archive` at the end."
 user-invocable: true
 ---
 
-# Execute Plan
+# Execute Plan (OpenSpec change)
 
-Orchestrate plan execution using the agent-driven-development pattern. The main thread acts as a thin coordinator — parsing the plan into a task dependency graph, dispatching agents in worktrees, and merging results. All implementation, review, and testing happens in agents.
+Orchestrate execution of an approved OpenSpec change. The main thread acts as a thin coordinator — loading the change folder, parsing `tasks.md` into a task dependency graph, dispatching agents in worktrees, merging results, and archiving the change at the end. All implementation, review, and testing happens in agents.
 
 ## Arguments
 
-- `$ARGUMENTS` - Required: URL or file path to the plan to execute
+- `$ARGUMENTS` – Required: the OpenSpec change NAME (kebab-case identifier, not a file path). Example: `/execute-plan add-fitbit-mcp-server`.
 
-If no arguments are provided, find the most recently modified plan in the project's `specs/plans/` directory and respond with only this message (no other actions):
+If no arguments are provided, find the most recently created in-flight change with `openspec list --changes --json` and respond with only this message (no other actions):
 
 ```
-Your plan is ready. Run /clear and then:
+Your change is ready. Run /clear and then:
 
-/execute-plan <path-to-most-recent-plan>
+/execute-plan <change-name>
 ```
 
 This ensures execution starts with a fresh context window. Do not proceed with execution — just print the message and stop.
@@ -27,58 +27,101 @@ This ensures execution starts with a fresh context window. Do not proceed with e
 - Current branch: !`git branch --show-current`
 - Git status: !`git status --short`
 - Project root: !`pwd`
-- Available plans: !`ls -t specs/plans/ 2>/dev/null | head -10`
+- In-flight changes: !`openspec list --changes --json 2>/dev/null | head -200`
+
+## Prerequisites
+
+This skill is OpenSpec-only. The target project MUST have an `openspec/` directory. The named change MUST exist at `openspec/changes/<name>/`. If either check fails, exit with a clear error pointing the user at `/brainstorm` (to create the change) or `/migrate-to-openspec` (if a legacy `.specs` system is still in place).
 
 ---
 
-## Phase 0: Load and Parse
+## Phase 0: Load and parse the change
 
-1. **Resolve the plan source:**
-   - If `$ARGUMENTS` is a file path, read it directly
-   - If `$ARGUMENTS` is a URL, fetch it with WebFetch
-   - If `$ARGUMENTS` is a plan name without path, look in `specs/plans/` relative to the project root
+1. **Resolve the change.** Treat `$ARGUMENTS` as a kebab-case change name. Verify `openspec/changes/<name>/` exists. If not, list nearby names from `openspec list --changes --json` and exit with a suggestion.
 
-2. **Locate the design doc.** Plans should reference a design/brainstorm doc at the top (in a `**Design doc:**` field). If present, read it — this is the design source of truth that agents need alongside the plan. If no reference exists, check the plan's parent directory for `brainstorm.md` as a fallback. If neither is found, proceed without it — the plan may be self-contained.
+2. **Load the change as JSON:**
 
-3. **Parse the plan into stages.** Plans typically have numbered sections, phases, or steps. Extract:
-   - **Stages**: Ordered list of discrete work chunks
-   - **Dependencies**: Which stages depend on others (explicit "depends on stage N" or implicit from ordering)
-   - **Scope**: Files, directories, and repos each stage touches
+   ```
+   openspec show <name> --json
+   ```
 
-4. **Build a dependency graph.** For each stage, determine:
-   - Which other stages must complete first (blockers)
-   - Which stages are independent and can run in parallel
-   - Dependency signals: explicit mentions ("after stage 2"), shared file scope, or logical ordering (tests before integration)
+   Capture proposal, design, tasks, and the delta specs. These are the source of truth for what is being built.
+
+3. **Validate the change before execution:**
+
+   ```
+   openspec validate <name> --strict
+   ```
+
+   If validation fails, surface the errors and stop. Do not execute against an invalid change.
+
+4. **Read `design.md`.** The design doc captures architecture, decisions, alternatives, and risks. Agents need this alongside the deltas and tasks to make good implementation decisions.
+
+5. **Read the delta specs** at `openspec/changes/<name>/specs/<capability>/spec.md`. Each scenario in the deltas becomes a candidate failing test in Stage 1.
+
+6. **Parse `tasks.md` into stages.** OpenSpec tasks files use this structure:
+
+   ```markdown
+   ## 1. Tests
+
+   - [ ] 1.1 Write failing tests from each scenario...
+   - [ ] 1.2 ...
+
+   ## 2. <First vertical slice>
+
+   **Depends on:** Stage 1
+
+   - [ ] 2.1 ...
+
+   ## 3. <Next vertical slice>
+
+   **Depends on:** Stage 1
+
+   - [ ] 3.1 ...   <!-- parallel with stage 2 -->
+   ```
+
+   Each `## N. <name>` group is one stage. Extract:
+
+   - **Stages**: ordered list of discrete work chunks (one per H2 group).
+   - **Dependencies**: the `**Depends on:** Stage N[, Stage M]` line under each H2. If absent, infer from numerical order (Stage N depends on Stage N-1).
+   - **Scope**: files, directories, and capabilities each stage touches (extract from the checkbox descriptions).
+
+7. **Build a dependency graph.** For each stage, determine:
+
+   - Which other stages must complete first (blockers from `**Depends on:**`)
+   - Which stages are independent and can run in parallel (same blocker set, no shared files)
+   - Stage 1 (tests) is always the foundation; everything else depends on at least Stage 1
 
 ---
 
-## Worktree Decision
+## Worktree decision
 
-Before execution begins, ask the user how to run the plan:
+Before execution begins, ask the user how to run the change:
 
-> **How do you want to run this plan?**
+> **How do you want to run this change?**
 >
-> - **Execute on current branch** (recommended) — stages run here, commits land on this branch as they complete
+> - **Execute on current branch** (recommended) — stages run here, commits land on this branch as they complete.
 > - **Execute in a worktree** — creates an isolated branch so you can keep working or run another agent in this session. Only useful if you're running multiple coding workstreams at the same time.
 
-Default to "current branch" if the user doesn't have a preference. If the user chooses worktree mode:
+Default to "current branch" if the user doesn't have a preference. The branch name should match the change name (`<name>`) wherever possible — this is the convention `/save-w-specs` and the pre-commit hook use to identify the active change.
 
-1. Create a worktree at `.claude/worktree/<plan-slug>/` for the overall execution
-2. All per-stage worktrees nest inside that (`.claude/worktree/<plan-slug>/<task-slug>/`)
-3. After all stages complete and merge to the worktree's branch, present the result for the user to merge back to their original branch (via `/close-worktree` or manual merge)
+If the user chooses worktree mode:
+
+1. Create a worktree at `.claude/worktree/<name>/` for the overall execution.
+2. All per-stage worktrees nest inside that (`.claude/worktree/<name>/<task-slug>/`).
+3. After all stages complete and merge to the worktree's branch, present the result for the user to merge back to their original branch (via `/close-worktree` or manual merge).
 
 ---
 
-## Phase 1: Create Task Graph
+## Phase 1: Create task graph
 
-Use native `TaskCreate` with `addBlockedBy` to build the full dependency graph upfront. Every stage becomes a task. Independent stages share no blockers and become eligible simultaneously.
+Use native `TaskCreate` with `addBlockedBy` to build the full dependency graph upfront. Every stage from `tasks.md` becomes a task. Independent stages share no blockers and become eligible simultaneously.
 
 ```
-TaskCreate("Stage 1: Update specs", ...)
-TaskCreate("Stage 2: Write failing tests", ..., addBlockedBy: [stage-1-id])
-TaskCreate("Stage 3: Implement auth module", ..., addBlockedBy: [stage-2-id])
-TaskCreate("Stage 4: Implement API routes", ..., addBlockedBy: [stage-2-id])  <- parallel with stage 3
-TaskCreate("Stage 5: Integration tests", ..., addBlockedBy: [stage-3-id, stage-4-id])
+TaskCreate("Stage 1: Write failing tests", ...)
+TaskCreate("Stage 2: Implement auth module", ..., addBlockedBy: [stage-1-id])
+TaskCreate("Stage 3: Implement API routes", ..., addBlockedBy: [stage-1-id])  <- parallel with Stage 2
+TaskCreate("Stage 4: Integration tests", ..., addBlockedBy: [stage-2-id, stage-3-id])
 ```
 
 Present a brief execution summary:
@@ -86,15 +129,16 @@ Present a brief execution summary:
 ```
 ## Execution Plan
 
-Loaded: {plan name/path}
-Design doc: {path from plan header, or "none"}
-Stages: {N}
+Change: <name>
+Capabilities touched: <comma-separated from deltas>
+Design doc: openspec/changes/<name>/design.md
+Tasks: openspec/changes/<name>/tasks.md
+Stages: <N>
 
 1. {Stage name} — {1-line description}
 2. {Stage name} — {1-line description} [blocked by: 1]
-3. {Stage name} — {1-line description} [blocked by: 2]
-4. {Stage name} — {1-line description} [blocked by: 2]  <- parallel with 3
-5. {Stage name} — {1-line description} [blocked by: 3, 4]
+3. {Stage name} — {1-line description} [blocked by: 1]  <- parallel with 2
+4. {Stage name} — {1-line description} [blocked by: 2, 3]
 
 Parallel opportunities: {which stages can run concurrently}
 ```
@@ -107,51 +151,56 @@ After the worktree decision (see above), proceed to execution — do not wait fo
 
 For each unblocked task (or group of simultaneously unblocked tasks):
 
-### Worktree Setup
+### Worktree setup
 
-1. Create a worktree at `.claude/worktree/<task-slug>/`
-2. If `.claude/worktree/` does not exist yet, create it and add it to `.gitignore`
+1. Create a worktree at `.claude/worktree/<task-slug>/` (or nested under the per-change worktree if worktree mode was chosen).
+2. If `.claude/worktree/` does not exist yet, create it and add to `.gitignore`.
 
-### Dispatch Implementer
+### Dispatch implementer
 
 Spawn a fresh agent in the worktree following the agent-driven-development loop. The agent prompt includes:
 
-- The full stage text from the plan
-- **The design doc contents** (if located in Phase 0) — the plan describes execution order; the design doc describes *what to build and why*. Agents need both to make good implementation decisions.
-- File scope (what to read, what to create/modify)
-- Done criteria extracted from the plan
+- The full stage text from `tasks.md` (the H2 group + its checkbox items)
+- The full `design.md` contents — agents need both architecture context and execution detail
+- The relevant delta spec(s) at `openspec/changes/<name>/specs/<capability>/spec.md` — these are the behavioral contract; scenarios are the test list
+- File scope (what to read, what to create/modify, derived from the stage's checkbox descriptions)
+- Done criteria for the stage (all checkboxes in the H2 group complete; for Stage 1, all scenario tests fail in the expected way)
 - Reference to TDD discipline (`skills/test-driven-development/SKILL.md`)
 - Reference to self-verification (`skills/verification-before-completion/SKILL.md`)
 - For bug-fix stages: reference to `skills/debug/root-cause-tracing.md` and `skills/debug/defense-in-depth.md`
 
 The implementer reports one of: `DONE`, `DONE_WITH_CONCERNS`, `NEEDS_CONTEXT`, `BLOCKED`.
 
-### Handle Status
+### Handle status
 
 Handle all statuses internally per the autonomous execution rules (see below). Never ask the user.
 
-### Two-Stage Review
+### Two-stage review
 
 After the implementer finishes:
 
-1. **Dispatch spec reviewer** — checks implementation matches the plan's intent for this stage. Uses the prompt template at `skills/agent-driven-development/spec-reviewer-prompt.md`.
+1. **Dispatch spec reviewer** — checks implementation matches the change's deltas (every scenario in the relevant delta has a corresponding passing test, behavior matches `**WHEN**`/`**THEN**`). Uses `skills/agent-driven-development/spec-reviewer-prompt.md`. Provide the delta specs and the design doc as inputs.
 2. If issues found: implementer fixes, spec reviewer re-reviews. Loop until clean.
-3. **Dispatch code quality reviewer** — checks implementation is well-built. Uses the prompt template at `skills/agent-driven-development/code-quality-reviewer-prompt.md`.
+3. **Dispatch code quality reviewer** — checks implementation is well-built. Uses `skills/agent-driven-development/code-quality-reviewer-prompt.md`.
 4. If issues found: implementer fixes, quality reviewer re-reviews. Loop until clean.
 
 Spec compliance must pass before code quality review begins.
+
+### Update `tasks.md` checkboxes
+
+After both reviews pass for a stage, the implementer (or controller, if simpler) checks the corresponding `- [ ]` items off in `openspec/changes/<name>/tasks.md` (`- [ ]` → `- [x]`). The pre-commit hook expects deltas to travel with code; the tasks file ticks travel separately and document progress.
 
 ### Merge
 
 After both reviews pass:
 
-1. Switch to the main working branch
-2. Merge the worktree branch
+1. Switch to the main working branch (or the per-change worktree branch in worktree mode)
+2. Merge the per-stage worktree branch
 3. If textual conflicts: resolve and run the full test suite
 4. If tests fail after merge (semantic conflict): re-dispatch the task against the updated base
-5. Clean up the worktree branch and directory
+5. Clean up the per-stage worktree branch and directory
 
-### Parallel Execution
+### Parallel execution
 
 Independent tasks (no dependency between them) run in parallel:
 
@@ -160,25 +209,64 @@ Independent tasks (no dependency between them) run in parallel:
 - Reviews can also run in parallel across different tasks
 - Merges happen sequentially (first-done merges first; subsequent tasks rebase if needed)
 
-### Task Completion
+### Task completion
 
 Mark each task complete in the native Task system. Dependents auto-unblock and become eligible for dispatch.
 
-If an agent completed work belonging to a later stage (overlap detected via file diff), mark that later stage as done and skip dispatching it.
+If an agent completed work belonging to a later stage (overlap detected via file diff), mark that later stage as done and skip dispatching it. Update the corresponding `tasks.md` checkboxes.
 
 ---
 
-## Phase 3: Summary
+## Phase 3: Validate the integrated change
 
-Produce one final report after all tasks complete:
+After every stage's task is complete and merged:
+
+1. Run the project's full test suite. All scenario-derived tests must pass.
+2. Run `openspec validate <name> --strict`. Must pass.
+3. Confirm every checkbox in `openspec/changes/<name>/tasks.md` is `- [x]`. Any unchecked item is a parked task.
+
+If anything fails, route the failure back into Phase 2 (re-dispatch the affected stage with the failure as new context).
+
+---
+
+## Phase 4: Archive the change
+
+Once Phase 3 passes, archive the change:
+
+```
+openspec archive <name> --yes
+```
+
+This:
+
+- Merges the change's deltas (`openspec/changes/<name>/specs/<capability>/spec.md`) into the base specs at `openspec/specs/<capability>/spec.md`.
+- Removes the change folder.
+- For doc-only or infrastructure-only changes that intentionally have no spec deltas, pass `--skip-specs`.
+
+After archiving, run `openspec validate --all --strict` to confirm the merged base specs are still valid.
+
+If the archive fails (e.g. validation errors when merging deltas), surface the error, fix the deltas, re-run, and continue.
+
+---
+
+## Phase 5: Summary
+
+Produce one final report after archiving:
 
 ```markdown
-## Plan Execution Complete
+## Change Execution Complete
 
-### Plan
-{plan name/path}
+### Change
 
-### Stages Executed
+`<name>` — archived
+
+### Capabilities touched
+
+- `<capability-1>` — <ADDED | MODIFIED | REMOVED requirements summary>
+- `<capability-2>` — ...
+
+### Stages executed
+
 | # | Stage | Status | Summary |
 |---|-------|--------|---------|
 | 1 | {name} | Done | {1-line} |
@@ -186,73 +274,79 @@ Produce one final report after all tasks complete:
 | 3 | {name} | Parked | {reason} |
 
 ### Commits
+
 {git log --oneline for all commits made during execution}
 
-### Quality Notes
+### Quality notes
+
 {Any DONE_WITH_CONCERNS observations, reviewer feedback worth noting}
 
 ### Concerns
+
 {Parked tasks with reasons, blockers that could not be resolved, semantic conflicts encountered}
 ```
 
 ---
 
-## Phase 4: Quality Gates
+## Phase 6: Quality gates
 
 After presenting the summary report, offer quality checks via `AskUserQuestion`:
 
-> "Implementation complete. Want to run quality checks?"
+> "Change `<name>` archived. Want to run quality checks?"
 
 Options:
-- **Both** (recommended) — run `/ralph-review` and `/spec-audit` in parallel
-- **Ralph-review only** — autonomous review loop comparing implementation against specs
-- **Spec-audit only** — audit spec coverage, find behavioral gaps
-- **Done** — skip quality gates
+
+- **Both** (recommended) — run `/ralph-review` and `/spec-audit` in parallel.
+- **Ralph-review only** — autonomous review loop comparing implementation against the merged base specs.
+- **Spec-audit only** — audit spec coverage, find behavioral gaps post-archive.
+- **Done** — skip quality gates.
 
 These are token-heavy, so they are opt-in. But offering them at the natural completion point makes them easy to reach.
 
 ---
 
-## Autonomous Execution
+## Autonomous execution
 
-Once execution starts (phases 1-3), the controller never asks the user anything. Handle all statuses internally:
+Once execution starts (Phases 1-4), the controller never asks the user anything. Handle all statuses internally:
 
-- **DONE** — proceed to spec review
+- **DONE** — proceed to spec review.
 - **DONE_WITH_CONCERNS** — read the concerns. If about correctness or scope, address before review. If observations ("this file is getting large"), note for the final report and proceed to review.
-- **NEEDS_CONTEXT** — provide the missing context from the plan, specs, or codebase and re-dispatch
+- **NEEDS_CONTEXT** — provide the missing context from the design, deltas, or codebase and re-dispatch.
 - **BLOCKED** — escalation ladder:
-  1. Provide more context and re-dispatch
-  2. Re-dispatch with a more capable model
-  3. Break the task into smaller pieces
-  4. Park the task and note it in the final report
+  1. Provide more context and re-dispatch.
+  2. Re-dispatch with a more capable model.
+  3. Break the task into smaller pieces.
+  4. Park the task and note it in the final report. Do not auto-archive a change with parked tasks — surface them and let the user decide.
 
-One summary at the end. No mid-execution interruptions — except the quality gate offer after the summary (see Phase 4).
+One summary at the end. No mid-execution interruptions — except the quality gate offer after the summary (see Phase 6).
 
-## Model Selection
+## Model selection
 
 Use the least powerful model that can handle each role:
 
 | Signal | Model |
 |--------|-------|
-| Touches 1-2 files with complete spec | haiku |
+| Touches 1-2 files with complete deltas | haiku |
 | Touches multiple files with integration concerns | sonnet |
 | Requires design judgment or broad codebase understanding | default (most capable) |
 | Review roles (spec compliance, code quality) | default (most capable) |
 
 ---
 
-## Token Conservation
+## Token conservation
 
 The main thread's job is coordination only:
 
-1. Never read source code files yourself — agents do that
-2. Never write or edit code yourself — agents do that
-3. Only read: plan files, agent results, git status/log/diff
-4. Keep messages to agents detailed so they don't need follow-ups
-5. Summarize, don't echo — when reporting results, summarize in 1-2 lines per stage
+1. Never read source code files yourself — agents do that.
+2. Never write or edit code yourself — agents do that.
+3. Only read: `openspec show` JSON, `tasks.md`, `design.md`, deltas, agent results, git status/log/diff.
+4. Keep messages to agents detailed so they don't need follow-ups.
+5. Summarize, don't echo — when reporting results, summarize in 1-2 lines per stage.
 
 ---
 
 ## Reference
 
 Execution follows the agent-driven-development pattern. Read `skills/agent-driven-development/SKILL.md` for the full loop, and dispatch agents using the prompt templates in `skills/agent-driven-development/`.
+
+The change's tasks.md IS the plan — there is no separate plan file. The deltas at `openspec/changes/<name>/specs/<capability>/spec.md` are the behavioral contract that reviewers compare implementation against. The `design.md` carries architecture and rationale. Together they replace the legacy `specs/docs/<date>-<topic>/{brainstorm,plan}.md` pair.
