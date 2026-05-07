@@ -93,7 +93,8 @@ Augment the template with project-specific signal so the user (or the next skill
 - List **existing capabilities** in this project: `openspec list --specs` (a parsed view, not raw output).
 - For any capability already mentioned in the change's `proposal.md` Capabilities list, fetch its current base spec via `openspec show <capability>` and include the requirement names verbatim — those are the requirements being modified, deltas must reference them by exact header.
 - Include 1-2 short scenario examples drawn from `openspec/specs/<capability>/spec.md` files in this project so the writer matches the project's voice (`#### Scenario:` shape, WHEN/THEN cadence, units, etc.).
-- Always remind the writer: scenarios use **exactly four `#`** characters; `### Scenario:` will fail silently.
+- Always remind the writer: scenarios use **exactly four `#`** characters (`#### Scenario:` is correct; `### Scenario:` with three hashes will fail silently).
+- **MODIFIED vs ADDED:** `## MODIFIED Requirements` requires the `### Requirement: <name>` to ALREADY EXIST in the base spec at `openspec/specs/<cap>/spec.md`, with the requirement text repeated verbatim above the new/modified scenarios. `## ADDED Requirements` introduces a brand-new requirement that must NOT exist in the base. Putting a new requirement under MODIFIED makes `openspec archive` fail mid-merge with `MODIFIED failed for header "### Requirement: <name>" - not found`. Always grep the base spec for `### Requirement: <name>` before choosing which header to write under.
 
 ### For artifact = `proposal`
 

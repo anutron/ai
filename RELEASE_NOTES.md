@@ -1,3 +1,30 @@
+## v1.24.0 — 2026-05-07
+
+`/close-spec-drift` skill, `/fixit` and `/bugbash` hardening, and a plannotator CLI hygiene rule.
+
+**New**
+- **`/close-spec-drift`** — targeted workflow for "make reality match the spec" in OpenSpec projects. Surfaces full drift extent before any work, scaffolds a thin change folder (proposal + tasks, no deltas), commits with `--no-verify`. Distinct from `/brainstorm` (too heavy for cleanups), `/spec-recommender` (opposite direction), and `/fixit` (non-OpenSpec).
+- **Rule snippet `065-plannotator-cli-hygiene`** — never pipe `plannotator` stdout through `tail`/`head`/`grep`. Annotations exist only on stdout and can't be recovered from disk.
+
+**Updated — `/fixit` and `/bugbash` (workflow guards)**
+- **User's Exact Ask** section in agent prompts preserves the user's literal instruction verbatim, marked as highest-priority guidance, supersedes the drift-vs-gap classification when the user prescribes a workflow.
+- **Workflow-instruction guard** — when the user's wording specifies a process ("via a PR", "via OpenSpec change", "with `--no-verify`", etc.), the dispatcher defers; if the prescribed workflow doesn't fit the project, surface to the user before dispatching.
+- **Pattern-cleanup pre-flight** — when the description contains keywords like "remove all" / "legacy" / "deprecated", run one comprehensive grep across the relevant scope and surface the full extent before dispatch.
+- **Followup capture rule** — every "out of scope" item in the agent's report must resolve into extend-scope, `TaskCreate`, or explicit won't-fix; cannot be silently dropped.
+- **Conditional merge gate** — auto-merge by default; hold for review on dispatcher-vs-user divergence, `DONE_WITH_CONCERNS`, unresolved concerns, or OpenSpec base-spec edits.
+- `/bugbash` uses a new `pending-merge/` status folder + `/bugbash review` subcommand instead of a synchronous merge queue. Adds a soft cross-bug capability overlap check alongside the existing same-file hard-gate.
+
+**Updated — other skills**
+- `execute-plan` accepts legacy `## Phase N:` headings as stage boundaries with numerical-order Depends-on fallback.
+- `handoff` replaces the dead `memory-query` MCP block with the auto-memory file + `MEMORY.md` index pattern.
+- `spec-writer` adds the MODIFIED-vs-ADDED Requirements pitfall: MODIFIED needs the requirement to already exist verbatim in the base spec, otherwise `openspec archive` fails mid-merge.
+- `migrate-to-openspec` adds audit-config translation, `--change` routing, anti-heartbeat wait pattern lockdown, and expanded test coverage.
+
+**Updated — docs**
+- `stack-spectrum.md`, `thanx-dev-system.md`, `workflow-guide.md`, and the design-to-execution / skills-and-project-organization recipes refreshed for the OpenSpec workflow.
+
+---
+
 ## v1.23.0 — 2026-05-04
 
 OpenSpec migration callouts in the docs and a `legacy-spec-system` rollback tag.

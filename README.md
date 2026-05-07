@@ -190,6 +190,7 @@ That's it. One line. The `dir` field says where specs live (defaults to `specs/`
 | Skill | What it does |
 |-------|-------------|
 | [migrate-to-openspec](skills/migrate-to-openspec/SKILL.md) | One-time migration from a legacy `.specs` project to OpenSpec — preserves Given/When/Then fidelity, archives originals at `.workflow/legacy-specs/` |
+| [close-spec-drift](skills/close-spec-drift/SKILL.md) | When an OpenSpec base spec is correct but code or peripheral spec text drifted from it — surfaces full extent of drift, scaffolds a thin change folder (no deltas), hands off to /execute-plan |
 | [spec-writer](skills/spec-writer/SKILL.md) | Thin orchestrator around `openspec instructions <artifact>` — returns enriched proposal/design/tasks/specs templates with project context |
 | [spec-recommender](skills/spec-recommender/SKILL.md) | Detect code without spec coverage, infer intent, recommend OpenSpec capabilities + requirements |
 | [spec-audit](skills/spec-audit/SKILL.md) | Audit OpenSpec coverage — inventory capabilities, map to code, dispatch agents to find behavioral gaps |

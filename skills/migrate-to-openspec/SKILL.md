@@ -15,6 +15,7 @@ The tool refuses to run on a project that already has an `openspec/` directory o
 
 - `--max-parallel <N>` — Cap on concurrent translator/verifier agents (default 20).
 - `--auto-stash` — Auto-stash dirty working tree instead of failing preflight. Stash pop runs at the end of Phase 5.
+- `--change <spec-base>` — Repeatable. Marks the spec at `<spec-dir>/<spec-base>.md` as describing **future** behavior that should land at `openspec/changes/<change-name>/` instead of `openspec/specs/<capability>/spec.md`. The migration auto-discovers the matching plan under `<spec-dir>/plans/` and uses its basename as the change name (see Phase 1 "Change candidates" below). Fails fast if no matching plan exists.
 
 ## Phase 0: Preflight
 
@@ -41,6 +42,16 @@ Once preflight passes, the CLI tags the current HEAD as `pre-openspec-migration-
 - `other` — anything else nested under the spec dir that doesn't match the buckets above.
 
 The CLI writes the result to `migration-inventory.json` at the project root. Arrays are sorted so the same input always produces the same output. The `run` orchestrator commits the inventory and the in-progress state file on the migration branch before handing off to later phases.
+
+### Change candidates
+
+When the user passes one or more `--change <spec-base>` flags, Phase 1 auto-discovers the matching plan for each candidate and emits a `change_candidates: { <spec-base>: <change-name> }` map alongside the existing buckets. Plan-discovery rules:
+
+1. Direct match: `<spec-dir>/plans/<spec-base>.md`. Change name = `<spec-base>`.
+2. Prefixed match: `<spec-dir>/plans/*-<spec-base>.md` (any prefix, e.g. `v1.1-revise.md`). Change name = matched plan basename without `.md`.
+3. No match: `migrate.sh run` exits non-zero before any tag/branch is created.
+
+Change-candidate spec paths still appear in `inventory.base` so Phase 2 dispatches the same translator + verifier on them. The `change_candidates` map only affects Phase 4, which routes accepted candidates to `openspec/changes/<change-name>/` rather than `openspec/specs/<capability>/`.
 
 ## Phase 2: Translate + verify
 
@@ -120,8 +131,16 @@ After resolution, `migrate.sh execute` (or the tail of `migrate.sh run`) writes 
 
 1. **Initialize OpenSpec.** If `openspec/` doesn't exist, run `openspec init --tools none .`.
 2. **Confirm accepted translations.** Each accepted capability already has a translated spec at `openspec/specs/<capability>/spec.md` from Phase 2; the executor just confirms presence.
-3. **Archive every source spec** at `.workflow/legacy-specs/<filename>.md` with a forwarding banner. The banner reads `# [Legacy] <title>` followed by `> Migrated to OpenSpec on <YYYY-MM-DD>.` and a list of new locations. Skipped capabilities get a "translation skipped" banner instead so the source is never silently dropped.
+2b. **Route change candidates to `openspec/changes/`.** For each accepted capability whose spec base appears in `inventory.change_candidates`, the executor:
+   - Reads the Phase 2 translation at `openspec/specs/<capability>/spec.md`.
+   - Rewrites it as a delta at `openspec/changes/<change-name>/specs/<capability>/spec.md`: drops the `# Capability:` and `## Purpose` headers, replaces `## Requirements` with `## ADDED Requirements`, keeps every `### Requirement:` block verbatim.
+   - Generates `openspec/changes/<change-name>/proposal.md` from a deterministic template (Why/What Changes/Capabilities/Impact, with the capability listed under New Capabilities and pointers to `.workflow/plans/<plan>` and `.workflow/legacy-specs/<spec>`).
+   - Generates `openspec/changes/<change-name>/tasks.md` by parsing `### Phase N:` headings out of the matched plan (or `## ` headings as a fallback). Each heading becomes one `- [ ] N. <heading>` task under `## Implementation`.
+   - Removes `openspec/specs/<capability>/spec.md` so the change folder is the sole home of the spec until the change is later archived via `openspec archive`.
+   The standard `openspec validate --all --strict` pass at step 6 covers the new change folder, so no extra validation call is needed.
+3. **Archive every source spec** at `.workflow/legacy-specs/<filename>.md` with a forwarding banner. The banner reads `# [Legacy] <title>` followed by `> Migrated to OpenSpec on <YYYY-MM-DD>.` and a list of new locations. Skipped capabilities get a "translation skipped" banner instead so the source is never silently dropped. Accepted change candidates get a third banner: `> Translated to in-flight OpenSpec change \`<change-name>\`.` so readers know to follow the change folder, not `openspec/specs/`.
 4. **Move sibling artifacts:** `<spec-dir>/plans/` → `.workflow/plans/`, `<spec-dir>/docs/` → `.workflow/docs/`, `<spec-dir>/audits/` → `.workflow/audits/`, `<spec-dir>/todo/` → `.workflow/todo/`. Subdirectories are preserved.
+4b. **Translate legacy `/spec-audit` config (if present).** If `<spec-dir>/.audit-config.json` exists, write a translated copy to `openspec/.audit-config.json`: each `modules[*].specs` entry is normalized from a legacy filename (`<name>.md`, possibly path-prefixed) to the OpenSpec capability slug (`<name>`); entries whose slug is not in the accepted-capabilities set (skipped capabilities, or capabilities that became `openspec/changes/` rather than `openspec/specs/`) are dropped; `mapping_cache` is reset to `{}` (spec paths and content hashes all change in the migration); `pitfalls`, `extensions`, `excludes`, `test_suites`, and `version` are preserved verbatim. Best-effort: missing config or jq failure is logged and skipped, never fatal.
 5. **Preserve `.specs`** as `.workflow/legacy-specs/.specs`, then delete the original `.specs` and the (now-empty) spec dir.
 6. **Validate.** Run `openspec validate --all --strict`. On failure, the executor rolls back via `git reset --hard <pre-migration-tag>` + `git clean -fdq` and aborts.
 7. **Install templates** from `templates/` into the project: three CLAUDE.md snippets at `claude-rules/snippets/global/` and the new pre-commit hook at `scripts/spec-check-hook.sh`. If a template is missing (Stage 6 hasn't filled it in), the executor writes a one-line stub so the install step still succeeds — Stage 6 replaces the stubs with real content.

@@ -69,17 +69,6 @@ This ensures the handoff is immediately ready to paste into a new session withou
 
 ### Step 3: Persist to Memory
 
-Also save a summary observation to the memory system so this context survives beyond the clipboard. Use the memory-query MCP tool to insert an observation:
+Save a summary observation to the built-in Claude auto-memory system so the context survives beyond the clipboard. Write a project-type memory file at `~/.claude/projects/<encoded-project-path>/memory/project_<topic>.md` (with the standard frontmatter — `name`, `description`, `type: project`, plus a body containing the 1-2 sentence summary, branch, repo, and remaining-items hook), then add a one-line index entry to `MEMORY.md` in that same directory.
 
-```sql
-INSERT INTO observations (category, observation, confidence, supporting_data, created_at)
-VALUES (
-  'session-handoff',
-  '[1-2 sentence summary of what was handed off]',
-  0.9,
-  '{"branch": "[branch]", "repo": "[repo]", "remaining_items": [count], "key_files": ["file1", "file2"]}',
-  NOW()
-);
-```
-
-This ensures the handoff context is recoverable even if the clipboard is lost.
+Follow the auto-memory format described in the global CLAUDE.md (`### Step 1` writes the memory file with frontmatter; `### Step 2` adds the `MEMORY.md` index pointer). This ensures the handoff context is recoverable even if the clipboard is lost.

@@ -1,9 +1,5 @@
 # Workflow Guide
 
-> **OpenSpec workflow (v1.22.0+).** The skills described here now run on [OpenSpec](https://github.com/Fission-AI/OpenSpec). Specs live under `openspec/specs/<capability>/spec.md`, in-flight work lives in `openspec/changes/<name>/`, and the lifecycle is `change folder → deltas → tests → implement → archive`.
->
-> **Want the previous workflow?** The [`legacy-spec-system`](https://github.com/anutron/claude-skills/tree/legacy-spec-system) tag points at the v1.21.0 commit – the last release using the `.specs`-based system. To migrate an existing legacy project, use [`/migrate-to-openspec`](../skills/migrate-to-openspec/SKILL.md).
-
 ## Overview
 
 This workbench is a single git repository where you manage the system that drives how you work with Claude. It contains three things:
@@ -52,9 +48,9 @@ Skills are invokable workflows that handle complex multi-step processes. They li
 
 Specs describe what a feature does — not how it's implemented. They are the source of truth for intent. **Spec > Code.** If the spec and the code disagree, the code has a bug.
 
-The development process follows a fixed order: **change folder → deltas → tests → implement → archive**. The change folder and deltas come first. Code comes last.
+The development process follows a fixed order: **interview → spec → plan → test → implement → review → improve**. The spec comes first. The plan is the most important step. Code comes last.
 
-Specs live under `openspec/specs/<capability>/spec.md` within each project. Opt in by running `openspec init` (detected via `test -d openspec`). In-flight work lives in `openspec/changes/<name>/`. Format:
+Specs live in a `specs/` directory within each project, opted in via a `.specs` file at the project root. Format:
 
 ```markdown
 # SPEC: Feature Name
@@ -114,7 +110,7 @@ Run `/improve` to update rules, skills, and specs based on what was learned duri
 1. Copy the `claude-rules/` directory into your project
 2. Run `compile.sh link` to set up symlinks
 3. Run `compile.sh compile` to generate CLAUDE.md files
-4. Run `openspec init` to opt into spec-driven development in projects where you are using Claude to write code
+4. Add a `.specs` file to opt into spec-driven development in projects where you are using Claude to write code
 
 ### How do I create skills?
 

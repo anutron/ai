@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "modules": [
+    {
+      "name": "core",
+      "paths": ["src/"],
+      "specs": [
+        "feature-a.md",
+        "specs/feature-c-mixed.md",
+        "feature-d-unbuilt.md"
+      ]
+    },
+    {
+      "name": "cli",
+      "paths": ["cmd/"],
+      "specs": [
+        "feature-b-cli.md",
+        "feature-removed.md"
+      ]
+    }
+  ],
+  "extensions": ["go", "ts"],
+  "excludes": [
+    "**/node_modules/**",
+    "**/vendor/**"
+  ],
+  "pitfalls": [
+    "Fixture pitfall: feature-a and feature-b share state via the shared/ package — flag cross-module references with care.",
+    "Fixture pitfall: feature-c-mixed historically lived under cli/ before being moved to src/."
+  ],
+  "test_suites": [
+    {
+      "dir": "src",
+      "command": "go test ./..."
+    }
+  ],
+  "mapping_cache": {
+    "feature-a.md": {
+      "sha": "deadbeefcafef00d",
+      "modules": ["core"]
+    }
+  }
+}

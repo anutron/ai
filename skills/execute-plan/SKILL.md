@@ -80,7 +80,9 @@ This skill is OpenSpec-only. The target project MUST have an `openspec/` directo
    - [ ] 3.1 ...   <!-- parallel with stage 2 -->
    ```
 
-   Each `## N. <name>` group is one stage. Extract:
+   Both `## N. <name>` (canonical, emitted by `/brainstorm`) and `## Phase N: <name>` (legacy / hand-written) headings are accepted as stage boundaries. Phase-style files often omit the explicit `**Depends on:**` lines — that's fine; fall back to numerical ordering for those (Stage N depends on Stage N-1).
+
+   Each H2 group is one stage. Extract:
 
    - **Stages**: ordered list of discrete work chunks (one per H2 group).
    - **Dependencies**: the `**Depends on:** Stage N[, Stage M]` line under each H2. If absent, infer from numerical order (Stage N depends on Stage N-1).
