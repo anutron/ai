@@ -356,15 +356,24 @@ For each [AUTO-FIX], include:
 - Design concern not addressed by deltas or `tasks.md`
 - Behavioral change that looks intentional but has no delta coverage
 
-For each [QUESTION], include:
-- File and line number (for the main thread's reference)
-- **What's happening** — plain language summary accessible to someone who didn't write the code. Lead with the observable behavior, not the implementation. e.g., "the UI freezes briefly during X" not "functionA() calls sleep() on the main thread."
-- **What could go wrong** — the consequence in terms of system behavior, not code mechanics. e.g., "users could see stale data" not "the backing array could be shared."
-- **Tradeoffs** — what you gain and what you lose with each option. Every design choice has a reason it exists; surface that. e.g., "removing the delay makes the operation feel snappier but risks the previous process not fully completing before the new one starts."
-- **Recommendation** — what you think should be done and why, informed by the tradeoffs. Take a position.
-- **Options** — put the recommendation first, then alternatives
+If your `~/.claude/CLAUDE.md` (or any project-level CLAUDE.md) defines user-facing framing instructions for choices and findings, apply them. The default question structure below works on its own; user-supplied framing extends or overrides it. For each [QUESTION], include:
 
-Frame questions for a user who may not know the codebase. The code was likely written by Claude, not the user. Explain the *so what*, not the *how*. Reference deltas and desired behavior, not implementation details.
+- File and line number (for the main thread's reference)
+- **Why this matters** – what part of the change this touches (a user flow, a security boundary, a performance hotpath, an external contract) and what depends on the answer
+- **What's happening** – plain language summary
+- **What could go wrong** – consequence in system behavior, not code mechanics
+- **Tradeoffs** – gain vs. lose with each option
+- **Recommendation** – take a position
+- **Inevitability** – a neutral fact-label about the underlying work, set independently of the recommendation. Use one of:
+  - **Inevitable** – this work will need to happen eventually regardless of what's chosen now. Deferring just postpones it. "If it's worth doing at all, it's worth doing it right the first time" applies – a simpler-now / complex-later split usually means paying the cost twice. Name the bad outcome that arrives if it's never done.
+  - **Order-dependent** – better done after something else happens (another change lands, scope solidifies, more data is available). Deferral is genuine. Name what has to happen first.
+  - **Avoidable** – may never need to happen; depends on usage patterns that may or may not emerge. Name the condition under which this stays unneeded.
+
+  Record this even when recommending defer. Do not let the label adjust the recommendation – the point is to surface the tradeoff, not bias it.
+- **Options** – recommendation first, then alternatives
+- **Technical details** – brief 1-3 line summary of concrete artifacts (file, function or type, key fields, relevant delta requirement)
+
+The code was likely written by Claude, not the user. Reference deltas and desired behavior, not implementation details.
 
 **[SPEC-DRIFT]** — Behavioral code without delta coverage (spec tier only):
 - New behavior with no delta mention
@@ -510,22 +519,19 @@ IF iteration == max_iterations AND auto_fixes were made in last loop:
 
 ### Post-report resolution
 
-When the user chooses to address spec drift (see Phase 3):
+When the user chooses to address spec drift (see Phase 3), use the same dispatch-as-you-go pattern as Option 2 (Questions for you).
 
-Present each drift item one at a time via `AskUserQuestion`. For each item, show the draft recommendation and ask the user to approve, edit, or reject.
+For each drift item, one at a time, present via `AskUserQuestion` with the draft delta recommendation. Ask the user to approve, edit, or reject.
 
-Same background dispatch pattern as Questions — handle the user's response and present the next drift item in the same response.
+After each answer, act on it immediately, then move to the next item:
 
-After the user responds to each item:
+1. **Approve / edit:** write the delta to `openspec/changes/<active>/specs/<capability>/spec.md` inline (use `/spec-recommender` → `/spec-writer` if available, otherwise edit directly). Prefer `## ADDED Requirements` for new behavior; copy the full requirement block when using `## MODIFIED Requirements`. Run `openspec validate <active> --type change --strict`. If validation fails, surface the error and revert the offending edit.
+2. **If the drift item also needs a code change to match the new delta:** dispatch a background fix agent, subject to the conflict-avoidance check in Option 2 (queue if overlapping with in-flight fixes).
+3. **Reject:** record and move on.
 
-1. **Update the delta inline** – delta edits are fast (just markdown), so do them in the main thread. Use `/spec-recommender` → `/spec-writer` if available, otherwise edit `openspec/changes/<active>/specs/<capability>/spec.md` directly. Prefer `## ADDED Requirements` for new behavior; copy the full requirement block when using `## MODIFIED Requirements`.
-2. **Validate the change** – run `openspec validate <active> --type change --strict` after each delta edit. Fail loudly if the edit broke validation; revert if needed.
-3. **If code changes are needed** to match the updated delta, dispatch a background fix agent using the same process described in Phase 3 ("Dispatching a background fix agent"). Print "Fix dispatched in background. Moving to the next drift item."
-4. **Show the next drift item immediately** in the same response — don't wait for the fix to complete.
+Print one short status line after each answer ("Delta updated and code fix dispatched." / "Delta updated.") and immediately present the next item. Do not block on background fixes.
 
-Apply the same conflict avoidance rule as questions: if two fixes would touch the same files, serialize them.
-
-After all drift items are addressed and any in-flight fixes complete, offer: "Deltas updated. Restart ralph-review to validate against updated deltas? (y/n)"
+After all drift items are processed, offer: "Deltas updated. Restart ralph-review to validate against updated deltas? (y/n)"
 
 ---
 
@@ -616,22 +622,34 @@ See "Spec drift handling → Post-report resolution" above.
 
 ### Option 2: Questions for you
 
-Present each finding one at a time via `AskUserQuestion`. Frame every question for someone who didn't write the code — the user likely directed Claude to build it, not hand-authored it. Lead with the situation and consequence, not implementation details.
+**Dispatch as you go.** Each answer kicks off its work immediately — the user keeps answering the next question while the previous one's fix runs in the background. Don't batch; the user is in the thread, not waiting on a queue.
+
+Print one line up front:
+
+```
+Walking through {N} questions. As you answer each one I'll dispatch the work in the background and move to the next question.
+```
+
+#### Per-question flow
+
+For each finding, in order, present via `AskUserQuestion`. If your CLAUDE.md defines user-facing framing instructions, apply them; otherwise use the template below. Template:
 
 ```
 Question {N} of {total}: {short descriptive title}
 
-{What's happening — plain language, 2-3 sentences. No jargon, no line numbers
-in the narrative. Explain the situation as you would to a product owner.}
+{Why this matters — 1-2 sentences situating the question.}
 
-{What could go wrong — the consequence in terms of system behavior.
-e.g., "users could see stale data" not "the goroutine reads a shared pointer."}
+{What's happening — plain language, 2-3 sentences. No jargon, no line numbers.}
 
-{Tradeoffs — what you gain vs. what you lose with each option. Surface why
-the current behavior might exist before recommending a change.}
+{What could go wrong — consequence in terms of system behavior.}
 
-Recommendation: {What Ralph thinks should be done and why, informed by
-the tradeoffs. Take a position.}
+{Tradeoffs — gain vs. lose; why the current behavior might exist.}
+
+Recommendation: {Position + reasoning.}
+
+Inevitability: {Inevitable | Order-dependent | Avoidable} — {one-line justification. Inevitable → name the bad outcome that arrives if this is never done. Order-dependent → name what has to happen first. Avoidable → name the condition under which this stays unneeded.}
+
+Technical details: {1-3 lines naming concrete artifacts.}
 
 1. Accept recommendation — {what that means concretely}
 2. Ignore — mark as expected with an inline comment so future reviews skip it
@@ -639,18 +657,39 @@ the tradeoffs. Take a position.}
 4. Defer — park this for a future session
 ```
 
-After the user answers each item, dispatch any work in the background and present the next question in the same response. Every response that handles a user answer contains both:
+After the user answers, act on the decision immediately, then present the next question. The user does not wait between questions for any fix to finish.
 
-1. The background dispatch (Agent tool call with `run_in_background: true`)
-2. The next `AskUserQuestion` for the next item
+- **Accept recommendation (code fix):**
+  - **Trivial** (one-liner, lint, formatting, single-file rename): apply inline in the main thread, commit, move on.
+  - **Substantial fix:** check file overlap against in-flight background fixes. If files are disjoint → dispatch a background fix agent in a worktree (see "Dispatching a background fix agent"). If files overlap with an in-flight fix → queue it; the queue drains as conflicting fixes complete.
+- **Add to delta:** edit `openspec/changes/<active>/specs/<capability>/spec.md` inline, run `openspec validate <active> --type change --strict`. If the delta change also requires code changes, dispatch a fix agent (subject to the same overlap check).
+- **Ignore:** apply the pre-drafted `// expected:` comment inline, commit.
+- **Defer:** write a todo marker to `.workflow/todo/` (see "Todo markers" below), commit.
 
-**Dispatching by answer type:**
+Print one short status line after each answer ("Dispatched fix for {N} in background." / "Delta updated." / "Annotation applied." / "Deferred to todo.") and immediately present the next question. Do not block on background fixes.
 
-- **Fix code** → Dispatch a background fix agent following fixit's process (see dispatch template below). Print "Fix dispatched in background. Moving to the next item." then immediately show the next question.
-- **Update delta** → Edit `openspec/changes/<active>/specs/<capability>/spec.md` inline in the main thread (just markdown, fast). Run `openspec validate <active> --type change --strict` after the edit. If code changes are also needed to match the updated delta, dispatch a background fix agent. Move to next item immediately.
-- **Ignore** → Offer to add an `// expected:` comment to the relevant line(s) so future reviews don't re-report the same finding. Show the proposed annotation for approval (e.g., `// expected: broadcastMessage ignores handled bool`). If the user approves, add the comment and commit it. If they decline, skip silently. Either way, move to next finding.
-- **Add to delta** → Same as "update delta" — capture the intentional behavior in the active change's deltas, then dispatch a background fix agent if code changes are needed. Move to the next question immediately.
-- **Defer** → Create a todo marker in `.workflow/todo/` (see "Todo markers" below). Move to the next question immediately.
+#### Conflict avoidance
+
+Maintain a running set of files touched by in-flight background fixes. Before dispatching a new fix:
+
+- If its files are disjoint from every in-flight fix → dispatch in parallel.
+- If its files overlap with any in-flight fix → queue it. Drain the queue when the conflicting fix completes.
+
+This is per-question, not per-batch — most pairs of fixes are independent, so most dispatch immediately.
+
+#### After the last question
+
+Print a summary:
+
+```
+{N} answers processed:
+- {X} background fixes dispatched ({Y} still running, {Z} queued behind file conflicts)
+- {A} delta updates applied
+- {B} ignore annotations applied
+- {C} deferred to todo
+```
+
+Return control to the user immediately. Report each background fix's result as it completes; drain the conflict queue as in-flight fixes finish.
 
 ### Dispatching a background fix agent
 
@@ -745,11 +784,11 @@ Implementation follows agent-driven-development pattern for a single task. Read 
 
 **Step 4: Print one line and move on** — do not wait for the agent.
 
-**On agent completion:** Follow the same completion flow as `/fixit` — two-stage review (spec reviewer → code quality reviewer), merge to original branch, worktree cleanup. Report result to user when done.
+**On agent completion:** Follow the same completion flow as `/fixit` — two-stage review (spec reviewer → code quality reviewer), merge to original branch, worktree cleanup. Report result to user when done. If queued fixes were waiting on this one's files, dispatch the next one in the queue now.
 
-**Conflict avoidance:** Before dispatching, check if a previously dispatched fix from this session touches the same file(s). If so, wait for that fix to complete before dispatching the new one — concurrent worktrees editing the same files will cause merge conflicts. Independent files can run in parallel.
+**Conflict avoidance:** Concurrent worktrees editing the same files will cause merge conflicts. Track the files touched by each in-flight fix; dispatch only when a new fix's files are disjoint from every in-flight fix, otherwise queue.
 
-**After all items are answered:** Wait for any in-flight fixes to complete and report their results. Then re-present the remaining review options.
+**After the user finishes answering questions:** Background fixes continue running. Return control to the user immediately — don't block. Report each fix's result as it completes. Once all in-flight and queued fixes are done, re-present the remaining review options.
 
 ### Option 3: Skipped findings
 
@@ -782,13 +821,27 @@ How would you like to review ralph's changes?
 
 ### Option 5: Done
 
-Accept everything and exit. Print:
+Accept everything and exit.
+
+**Close the gate.** If there's still an active OpenSpec change in `openspec/changes/`, offer to archive it via `AskUserQuestion`:
+
+> "Archive `<change-name>` now? Merges deltas into base specs and removes the change folder."
+>
+> - **Archive** (recommended if review is final) — runs `openspec archive <name> --yes` then `openspec validate --all --strict`.
+> - **Keep active** — leave the change in flight; archive later via `/save-w-specs` or `openspec archive`.
+
+If invoked from `/execute-plan`'s quality gate, the user already opted to let ralph close the gate — Archive is the expected choice. For standalone ralph invocations, the user may legitimately want to keep iterating. Don't auto-archive.
+
+If archive fails (e.g. validation errors when merging deltas), surface the error and stop. The user resolves and re-runs `openspec archive` manually. Skip this step entirely in conservative mode (no active change to begin with).
+
+Print:
 
 ```
 Ralph-review complete.
 - {N} issues auto-fixed across {N} loops
 - {N} questions parked for you
 - {N} spec drift items {resolved | pending}
+- {Change archived: <name> | Change kept active: <name> | (no active change)}
 - Report saved to: .claude/reviews/YYYY-MM-DD/ralph-review-report.md
 ```
 

@@ -135,7 +135,7 @@ The following prompt templates define agent behavior. The controller provides ta
 
 Never:
 
-- Skip reviews (spec compliance or code quality)
+- Skip reviews (spec compliance or code quality) — exception: test-only stages may use a single combined review pass instead of the full two-stage flow. See `execute-plan`'s "Review (with test-only fast-path)" section.
 - Proceed with unfixed review issues
 - Dispatch parallel agents to the same worktree
 - Start code quality review before spec compliance passes

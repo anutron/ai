@@ -261,6 +261,7 @@ These skills describe how agents should think and work. They're loaded by refere
 | [agent-driven-development](skills/agent-driven-development/SKILL.md) | Use when executing implementation plans with independent tasks -- worktree isolation, TDD discipline, two-stage review |
 | [test-driven-development](skills/test-driven-development/SKILL.md) | Use when implementing any feature or bugfix, before writing implementation code |
 | [verification-before-completion](skills/verification-before-completion/SKILL.md) | Use when about to claim work is complete, before committing or creating PRs -- evidence before assertions always |
+| [tp](skills/tp/SKILL.md) | CLI for checkbox flips and one-line status annotations in markdown task lists (`tasks.md`, test plans) -- much cheaper than Read+Edit per tick. Ships source + prebuilt macOS arm64 binary at [bin/tp/](bin/tp/) |
 
 ### Git & PR
 
@@ -307,6 +308,7 @@ See [claude-rules/README.md](claude-rules/README.md) for setup.
 | `005-claudemd-management` | How CLAUDE.md files are compiled from snippets |
 | `010-plan-formatting` | Markdown formatting requirements for structured output |
 | `020-interaction-prefs` | Question-by-question and step-by-step interaction patterns |
+| `022-user-facing-framing` | Structure for choices and findings -- outcome-first, recommendation takes a position. Referenced by `/brainstorm` and `/ralph-review` |
 | `040-plan-execution-handoff` | What to do after plan approval |
 | `040-tech-stack` | Tech stack spectrum -- four tiers from lightweight to deployable (references [stack-spectrum.md](docs/stack-spectrum.md)) |
 | `050-git-workflow` | Commit conventions and pre-commit hooks |

@@ -160,6 +160,14 @@ Once you understand what you're building, present the design. Scale each section
 
 Ask after each section whether it looks right so far via `AskUserQuestion`. Be ready to go back and revise.
 
+**Section framing.** If your `~/.claude/CLAUDE.md` (or any project-level CLAUDE.md) defines user-facing framing instructions for choices and findings, apply them here. Otherwise, the default brainstorm-section structure is:
+
+- **Outcome** – what this section unlocks, in plain language
+- **Decisions I'm making** – the opinionated choice, with the constraint that drove it (a line in `design.md`, a norm from Step 7, a user preference surfaced earlier). Don't hedge – the user is approving decisions, not arbitrating between alternatives
+- **Technical details** – brief 1-3 line summary of the concrete artifacts (type names, key fields, APIs, file locations)
+
+Collapse parts that don't apply. If a section is pure architecture/rationale, Decisions may collapse into Outcome. If there are no concrete artifacts yet, omit Technical details.
+
 **Design for isolation and clarity:**
 
 - Break the system into smaller units with one clear purpose and well-defined interfaces.

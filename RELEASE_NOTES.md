@@ -1,3 +1,31 @@
+## v1.25.0 — 2026-05-12
+
+`/tp` CLI for cheap checkbox edits, ralph-review Inevitability label, execute-plan pre-archive quality gates, and a new user-facing framing rule.
+
+**New**
+- **`/tp`** — CLI for single-line checkbox flips and one-line status annotations (`✅` `❌` `🟡` `⏭`) in markdown task lists. One Bash call instead of streaming whole files through Read+Edit for tick operations in `openspec/changes/*/tasks.md`, OpenSpec base specs, and `.workflow/test-plans/*.md`. Source lives at [bin/tp/](bin/tp/) with a Makefile; a prebuilt macOS arm64 binary ships in-repo. Other platforms run `cd bin/tp && make install` to build for their architecture.
+- **Rule snippet `022-user-facing-framing`** — outcome-first structure for choices and findings (Why this matters / What's happening / What could go wrong / Recommendation / Technical details). `/brainstorm` and `/ralph-review` look here for framing instructions; users can add their own version, this one, or none.
+
+**Updated — `/ralph-review`**
+- **Inevitability label** on every question finding. Classifies the underlying work as **Inevitable** (will need to happen eventually regardless — "if it's worth doing at all, it's worth doing it right the first time" applies), **Order-dependent** (genuine reason to wait), or **Avoidable** (may never be needed). Surfaces when "defer for economy" is really just postponing the inevitable, without biasing ralph's recommendation.
+- **Dispatch-as-you-go** question flow. Each user answer kicks off its fix in the background while ralph immediately presents the next question. Trivial fixes apply inline; substantial fixes dispatch to a worktree agent.
+- **Option 5 closes the gate** — Done now offers to archive the active OpenSpec change (merges deltas into base specs). Doesn't auto-archive — the user can keep iterating with Keep Active.
+
+**Updated — `/execute-plan`**
+- **Quality gates moved pre-archive.** Phase 4 now offers `/ralph-review` and `/spec-audit` while the change is still active and the deltas are intact. If the user picks ralph, ralph closes the gate (runs the review loop, addresses findings, archives). Previously ran post-archive where deltas had already merged.
+- **Parallel-eligible stages auto-mandate worktrees.** If the dependency graph has siblings (multiple stages sharing a Depends-on with no file overlap), worktree mode is selected without asking. Fully sequential changes still ask current-branch vs worktree.
+- **Test-only stages use a single combined review pass.** Stages that produce only test files run one reviewer (spec compliance + test correctness) with a one-fix-loop cap, instead of the full two-stage flow.
+
+**Updated — other skills**
+- `/brainstorm` section framing block now points at "your CLAUDE.md" for optional user-facing framing instructions, instead of citing a global rule by name.
+- `/agent-driven-development` cross-references execute-plan's test-only fast-path.
+
+**Notes**
+- To pick up the new `022-user-facing-framing` rule, re-run `/setup` or recompile your CLAUDE.md from snippets. Existing skills work without it; the rule extends their default templates.
+- macOS arm64 users get a working `tp` immediately after `/setup`. Other platforms must rebuild: `cd bin/tp && make install`.
+
+---
+
 ## v1.24.0 — 2026-05-07
 
 `/close-spec-drift` skill, `/fixit` and `/bugbash` hardening, and a plannotator CLI hygiene rule.
