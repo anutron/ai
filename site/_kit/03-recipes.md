@@ -14,7 +14,7 @@ Topics:
 
 - Skill organization (the pegboard model)
 - Design-to-execution pipeline
-- Building a security plugin
+- AI security policy and enforcement
 - Data proxy patterns
 
 [Read the recipes on GitHub →](https://github.com/anutron/ai/tree/main/docs/claude-code-recipes)

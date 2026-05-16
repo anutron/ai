@@ -39,15 +39,15 @@ A document-driven workflow for building things with AI that produces predictable
 
 ---
 
-### [3. The security plugin](03-security-plugin.md)
+### [3. AI security](03-security.md)
 
-![The security plugin](recipe3_security-plugin-three-helpers.png)
+![AI security](recipe3_security-plugin-three-helpers.png)
 
-A Claude Code plugin that embeds your organization's security policy into every session. Three separable concepts: policy context injection (Claude becomes security-aware), active guardrails (hooks that catch dangerous patterns), and compliance observability (tracking who's running the plugin). No infrastructure required for the first two; a lightweight backend enables the third.
+A complete, opinionated starter security policy you can adopt and customize – principles, approved tools, data access tiers, eight rules, business platform rules, credentials, enforcement. Plus how to deliver it: Anthropic's Organizational Instructions for the policy text (no plugin required), with optional hook-based guardrails and compliance observability for orgs that want more enforcement than context alone provides.
 
-**Prerequisites:** A security policy (even a draft). Claude Code's plugin system.
+**Prerequisites:** None to read it. To ship it: admin access to Anthropic Organizational Instructions, and optionally Claude Code's plugin system for the hook layers.
 
-[Read recipe 3 →](03-security-plugin.md)
+[Read recipe 3 →](03-security.md)
 
 ---
 
