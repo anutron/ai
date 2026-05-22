@@ -1,6 +1,7 @@
 ---
 name: devils-advocate
 description: Use when the user wants to stress-test an idea, plan, or approach — challenges assumptions and finds weaknesses before committing
+tags: [personal]
 ---
 
 # Devil's Advocate

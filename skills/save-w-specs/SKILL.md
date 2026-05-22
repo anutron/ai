@@ -1,6 +1,7 @@
 ---
 name: save-w-specs
 description: Use when ready to commit completed work — saves progress and verifies that behavioral code changes are accompanied by deltas in an active OpenSpec change (but never derives specs from code)
+tags: [spec]
 ---
 
 # Save progress (OpenSpec)

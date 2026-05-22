@@ -1,6 +1,8 @@
+---
+tags: [spec, quality]
+audience: [shared]
+---
 ## Testing
-
-**Applies to:** `~/Personal/*` and `~/Development/ai/*` projects. Does NOT apply to `~/Development/thanx/*` (those follow Thanx conventions).
 
 **Test-driven development:**
 - Write tests before implementation (when using SPEC-driven approach)

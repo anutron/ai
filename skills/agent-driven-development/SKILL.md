@@ -1,6 +1,7 @@
 ---
 name: agent-driven-development
 description: "Use when executing implementation plans with independent tasks — orchestration pattern for worktree isolation, TDD discipline, and two-stage review. Referenced by execute-plan, fixit, and bugbash."
+tags: [spec]
 ---
 
 # Agent-Driven Development
@@ -135,7 +136,7 @@ The following prompt templates define agent behavior. The controller provides ta
 
 Never:
 
-- Skip reviews (spec compliance or code quality) — exception: test-only stages may use a single combined review pass instead of the full two-stage flow. See `execute-plan`'s "Review (with test-only fast-path)" section.
+- Skip reviews (spec compliance or code quality)
 - Proceed with unfixed review issues
 - Dispatch parallel agents to the same worktree
 - Start code quality review before spec compliance passes

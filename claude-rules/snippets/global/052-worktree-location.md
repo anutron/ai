@@ -1,3 +1,7 @@
+---
+tags: [spec]
+audience: [shared]
+---
 ## Worktree Location
 
 **Applies to:** Any project with a `.specs` file (spec-driven projects).

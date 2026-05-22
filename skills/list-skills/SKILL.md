@@ -1,6 +1,7 @@
 ---
 name: list-skills
 description: Quick reference of all available skills and what they do. Use when you need a reminder of your toolkit.
+tags: [personal]
 ---
 
 # Skill Quick Reference

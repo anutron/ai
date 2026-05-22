@@ -1,6 +1,7 @@
 ---
 name: guard
 description: Use before any git commit to check for secrets, security antipatterns, and test breakage
+tags: [quality]
 ---
 
 # Pre-commit Guard

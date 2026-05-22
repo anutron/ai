@@ -1,0 +1,26 @@
+{
+  "$schema": "scope-presets",
+  "presets": {
+    "full": {
+      "description": "Everything not matched by the source's hardcoded exclude list. Aaron's default for his own dev loop.",
+      "skills": "*",
+      "snippets": "*",
+      "excludeSkills": ["airon-*", "thanx-*", "baker_st-*", "frontend-design", "playground", "plannotator-*", "anutron-install", "anutron-uninstall"]
+    },
+    "spec-discipline": {
+      "description": "Spec-first + TDD + quality gates. Recommended for contributor-facing repos.",
+      "skillTags": ["spec", "quality"],
+      "snippetTags": ["spec", "quality", "formatting"],
+      "snippetAudience": ["shared"]
+    },
+    "dev-tools": {
+      "extends": "spec-discipline",
+      "description": "spec-discipline + parallel workflow + PR shipping.",
+      "skillTags": ["spec", "quality", "workflow", "pr"]
+    },
+    "custom": {
+      "description": "Read includeSkills/excludeSkills/includeSnippets/excludeSnippets from .anutron-install.config.json in the target repo.",
+      "from": "manifest"
+    }
+  }
+}

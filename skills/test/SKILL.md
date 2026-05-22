@@ -1,6 +1,7 @@
 ---
 name: test
 description: Use after writing or modifying code to run targeted tests and identify coverage gaps, before claiming code works
+tags: [quality]
 ---
 
 # Smart Test Runner

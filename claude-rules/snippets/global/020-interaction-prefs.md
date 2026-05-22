@@ -1,4 +1,21 @@
+---
+tags: [formatting]
+audience: [shared]
+---
 ## Interaction Preferences
+
+### Asking for a decision
+
+When you need the user's input to choose between approaches, frame it in terms of outcomes — not implementation details. Structure every decision request like this:
+
+- **The decision** — one sentence naming the choice, framed as a question. Lead with the observable outcome ("the UI freezes briefly during X"), not the mechanism ("functionA() calls sleep()").
+- **Your options** — a bullet list, one short plain-language sentence each.
+- **Tradeoffs** — the main upside and downside for each option, in plain terms.
+- **My recommendation** — pick one, state it directly, give the one-line reason. No hedging.
+
+This applies anywhere a decision needs the user — after `/ralph-review`, `/review`, `/debug`, mid-implementation forks, plan reviews, anywhere. If the prior context was deeply technical, translate before asking. Strip jargon, acronyms, and code references unless the decision is literally about syntax.
+
+The user can still type `/eli5` to retroactively re-explain a prior response — that's a separate user-invoked path.
 
 ### Question-by-Question Approach
 

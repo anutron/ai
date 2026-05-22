@@ -1,6 +1,7 @@
 ---
 name: interview
 description: Structured interview-style review of any system, feature, or codebase. Builds an inventory, walks through items one-by-one in small chunks, tracks progress, captures decisions as artifacts. Use when the user wants to systematically review, audit, or evaluate something collaboratively.
+tags: [personal]
 ---
 
 # Structured Interview Review

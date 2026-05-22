@@ -176,7 +176,6 @@ classify_path() {
 # Build the inventory JSON from a deterministic walk of the spec dir.
 build_inventory_json() {
   local root="$1"
-  local change_candidates_json="${2:-{\}}"  # JSON object mapping <spec-base> -> <change-name>
   local spec_dir
   spec_dir=$(read_spec_dir "$root")
   local abs="$root/$spec_dir"
@@ -225,7 +224,6 @@ build_inventory_json() {
     --argjson audits "$audits_json" \
     --argjson todo "$todo_json" \
     --argjson other "$other_json" \
-    --argjson change_candidates "$change_candidates_json" \
     '{
       spec_dir: $spec_dir,
       base: $base,
@@ -233,38 +231,8 @@ build_inventory_json() {
       docs: $docs,
       audits: $audits,
       todo: $todo,
-      other: $other,
-      change_candidates: $change_candidates
+      other: $other
     }'
-}
-
-# Discover the plan file for a change candidate. Echoes the project-relative
-# plan path on success; returns 1 with a message on stderr otherwise.
-# Lookup order:
-#   1. <spec-dir>/plans/<spec-base>.md  (direct match)
-#   2. <spec-dir>/plans/*-<spec-base>.md  (any version-prefixed match)
-discover_plan_for_change() {
-  local root="$1"
-  local spec_base="$2"
-  local spec_dir
-  spec_dir=$(read_spec_dir "$root")
-
-  local direct="$root/$spec_dir/plans/$spec_base.md"
-  if [[ -f "$direct" ]]; then
-    printf '%s\n' "$spec_dir/plans/$spec_base.md"
-    return 0
-  fi
-
-  local match
-  match=$(find "$root/$spec_dir/plans" -maxdepth 1 -type f -name "*-$spec_base.md" 2>/dev/null \
-    | LC_ALL=C sort | head -1)
-  if [[ -n "$match" ]]; then
-    printf '%s\n' "${match#$root/}"
-    return 0
-  fi
-
-  err "no matching plan found for change candidate '$spec_base' (looked for $spec_dir/plans/$spec_base.md and $spec_dir/plans/*-$spec_base.md)"
-  return 1
 }
 
 cmd_inventory() {
@@ -308,12 +276,10 @@ cmd_run() {
   # this stage's CLI; the orchestrator parses them).
   local auto_stash=0
   local auto_accept=0
-  local change_bases=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --auto-stash)   auto_stash=1; shift ;;
       --auto-accept)  auto_accept=1; shift ;;
-      --change)       change_bases+=("$2"); shift 2 ;;
       --max-parallel) shift 2 ;;
       --) shift; break ;;
       *)  shift ;;
@@ -329,23 +295,9 @@ cmd_run() {
   # Tag + branch
   create_pre_migration_tag_and_branch "$root" >/dev/null
 
-  # Resolve change candidates -> matched plan basenames. Fail fast if any
-  # flagged spec lacks a discoverable plan.
-  local change_candidates_json='{}'
-  if [[ ${#change_bases[@]} -gt 0 ]]; then
-    local cb plan_path change_name
-    for cb in "${change_bases[@]}"; do
-      plan_path=$(discover_plan_for_change "$root" "$cb") || die "Phase 1: --change $cb: no matching plan"
-      change_name="${plan_path##*/}"
-      change_name="${change_name%.md}"
-      change_candidates_json=$(jq --arg k "$cb" --arg v "$change_name" \
-        '. + {($k): $v}' <<< "$change_candidates_json")
-    done
-  fi
-
   # Phase 1 inventory
   local inv
-  inv=$(build_inventory_json "$root" "$change_candidates_json")
+  inv=$(build_inventory_json "$root")
   printf '%s\n' "$inv" > "$root/migration-inventory.json"
 
   # Commit the inventory on the migration branch so the state is durable.
@@ -1115,193 +1067,6 @@ _install_template() {
   fi
 }
 
-# Translate a legacy spec-audit config (`<spec-dir>/.audit-config.json`) into
-# the OpenSpec location (`openspec/.audit-config.json`). Modules' `specs`
-# arrays are normalized from legacy filenames (`foo.md`, `path/foo.md`) to
-# capability slugs (`foo`); entries whose slug is not in the accepted-caps
-# set are dropped; `mapping_cache` is reset to `{}`; everything else
-# (`pitfalls`, `extensions`, `excludes`, `test_suites`, `version`) is
-# preserved verbatim. No-op if the legacy config is absent.
-# Install a change-folder at openspec/changes/<change-name>/ for an accepted
-# change candidate, using the Phase 2 translation as the source for the delta
-# spec and the matched plan as the source for tasks.md. Removes the original
-# openspec/specs/<cap>/spec.md so the change folder is the sole home of the
-# capability until the change is later archived.
-#
-# Args: <root> <spec-base> <change-name> <capability> <spec-relpath> <plan-relpath>
-_install_change_folder() {
-  local root="$1"
-  local spec_base="$2"
-  local change_name="$3"
-  local cap="$4"
-  local spec_relpath="$5"   # e.g. "specs/revise.md"
-  local plan_relpath="$6"   # e.g. "specs/plans/v1.1-revise.md"
-
-  local src_translation="$root/openspec/specs/$cap/spec.md"
-  if [[ ! -f "$src_translation" ]]; then
-    err "Phase 4: change candidate '$cap' has no Phase 2 translation at $src_translation"
-    return 1
-  fi
-
-  local change_dir="$root/openspec/changes/$change_name"
-  mkdir -p "$change_dir/specs/$cap"
-
-  # ---- 1. Convert translation -> delta.
-  # The translator emits:
-  #   # <title>
-  #   ## Purpose
-  #   <text>
-  #   ## Requirements
-  #   ### Requirement: ...
-  # For the delta, drop everything up to (but not including) ## Requirements,
-  # and rename that header to ## ADDED Requirements.
-  local delta_path="$change_dir/specs/$cap/spec.md"
-  awk '
-    BEGIN { found = 0 }
-    /^## Requirements[[:space:]]*$/ {
-      print "## ADDED Requirements"
-      found = 1
-      next
-    }
-    found { print }
-  ' "$src_translation" > "$delta_path.tmp"
-
-  if [[ ! -s "$delta_path.tmp" ]]; then
-    rm -f "$delta_path.tmp"
-    err "Phase 4: failed to extract requirements section from translation for '$cap'"
-    return 1
-  fi
-  mv "$delta_path.tmp" "$delta_path"
-
-  # ---- 2. Generate proposal.md (deterministic).
-  local title
-  title=$(_derive_title "$root/$spec_relpath")
-  local plan_basename="${plan_relpath##*/}"
-  local spec_basename="${spec_relpath##*/}"
-
-  cat > "$change_dir/proposal.md" <<PROPOSAL
-## Why
-
-\`$cap\` describes future behavior preserved during the OpenSpec migration. The original brainstorm and implementation plan live at \`.workflow/plans/$plan_basename\`; the legacy requirements doc is preserved at \`.workflow/legacy-specs/$spec_basename\`. This change captures that future state in OpenSpec form so the work can be tracked, validated, and ultimately archived once shipped.
-
-## What Changes
-
-- Add \`$cap\` capability with the requirements lifted from the legacy spec (see \`specs/$cap/spec.md\` for the delta).
-
-## Capabilities
-
-### New Capabilities
-
-- \`$cap\`: $title
-
-### Modified Capabilities
-
-(none)
-
-## Impact
-
-- Affected code: TBD - the change has not been implemented yet. See \`tasks.md\` for the implementation phases.
-- Original design: \`.workflow/plans/$plan_basename\`.
-- Legacy requirements: \`.workflow/legacy-specs/$spec_basename\`.
-PROPOSAL
-
-  # ---- 3. Generate tasks.md from the matched plan.
-  # Parse "### Phase N:" headings first; fall back to "## " headings.
-  local plan_full="$root/$plan_relpath"
-  {
-    printf '# Tasks\n\n'
-    printf '## Implementation\n\n'
-    if grep -qE '^### Phase [0-9]+' "$plan_full" 2>/dev/null; then
-      local n=0 line heading
-      while IFS= read -r line; do
-        n=$((n + 1))
-        heading="${line#### }"
-        printf -- '- [ ] %d. %s\n' "$n" "$heading"
-      done < <(grep -E '^### Phase [0-9]+' "$plan_full")
-    else
-      local n=0 line heading
-      while IFS= read -r line; do
-        n=$((n + 1))
-        heading="${line## }"
-        heading="${heading## }"
-        printf -- '- [ ] %d. %s\n' "$n" "$heading"
-      done < <(grep -E '^## [^#]' "$plan_full" 2>/dev/null)
-      if [[ $n -eq 0 ]]; then
-        printf -- '- [ ] 1. Implement %s per `.workflow/plans/%s`\n' "$cap" "$plan_basename"
-      fi
-    fi
-  } > "$change_dir/tasks.md"
-
-  # ---- 4. Remove the openspec/specs/ landing the translator wrote, since
-  # the change folder is the sole home of the capability until archive.
-  # rm -rf to clean up sidecars (spec.md.meta.json) too.
-  rm -rf "$root/openspec/specs/$cap"
-
-  printf 'Phase 4 (change candidate): wrote openspec/changes/%s/{proposal.md,tasks.md,specs/%s/spec.md}\n' \
-    "$change_name" "$cap"
-}
-
-_translate_audit_config() {
-  local root="$1"
-  local accepted_caps="$2"  # newline-separated list
-  local change_cap_slugs_csv="${3:-}"  # comma-separated list of change-candidate slugs
-
-  local spec_dir
-  spec_dir=$(read_spec_dir "$root")
-  local src_config="$root/$spec_dir/.audit-config.json"
-  [[ -f "$src_config" ]] || return 0
-
-  # Drop change-candidate slugs from accepted: they live at
-  # openspec/changes/<name>/specs/<cap>/, not openspec/specs/<cap>/, so
-  # the spec-audit skill's spec walk won't see them and any module
-  # reference to them would dangle.
-  local accepted_in_specs
-  if [[ -n "$change_cap_slugs_csv" ]]; then
-    local IFS=','
-    local -a change_arr=($change_cap_slugs_csv)
-    accepted_in_specs="$accepted_caps"
-    local cs
-    for cs in "${change_arr[@]}"; do
-      [[ -n "$cs" ]] || continue
-      accepted_in_specs=$(printf '%s\n' "$accepted_in_specs" | grep -vx "$cs" || true)
-    done
-  else
-    accepted_in_specs="$accepted_caps"
-  fi
-
-  local accepted_json
-  accepted_json=$(printf '%s\n' "$accepted_in_specs" | awk 'NF' | jq -R . | jq -s .)
-
-  local dest_config="$root/openspec/.audit-config.json"
-  mkdir -p "$root/openspec"
-
-  if ! jq --argjson accepted "$accepted_json" '
-    def to_slug:
-      sub(".*/"; "")
-      | sub("\\.md$"; "")
-      | ascii_downcase
-      | gsub("[^a-z0-9]+"; "-")
-      | sub("^-+"; "")
-      | sub("-+$"; "");
-    (.modules // []) |= map(
-      .specs |= (
-        (. // [])
-        | map(to_slug)
-        | map(select(. as $s | $accepted | any(. == $s)))
-        | unique
-      )
-    )
-    | .mapping_cache = {}
-  ' "$src_config" > "$dest_config.tmp"; then
-    rm -f "$dest_config.tmp"
-    err "Phase 4: failed to translate $spec_dir/.audit-config.json; skipping (config not migrated)"
-    return 0
-  fi
-  mv "$dest_config.tmp" "$dest_config"
-
-  printf 'Phase 4 (audit config): translated %s/.audit-config.json -> openspec/.audit-config.json\n' "$spec_dir"
-}
-
 _execute() {
   local root="$1"
 
@@ -1322,46 +1087,6 @@ _execute() {
   local accepted_caps skipped_caps
   accepted_caps=$(jq -r 'to_entries | map(select(.value=="accept")) | .[].key' "$res_path")
   skipped_caps=$(jq -r 'to_entries | map(select(.value=="skip")) | .[].key' "$res_path")
-
-  # --- Read change-candidate routing from inventory.
-  # Build parallel arrays indexed by slug for cheap O(N) lookup. The count is
-  # tiny (typically < 5) so a linear scan is fine.
-  local change_cap_slugs=() change_cap_names=() change_cap_specs=() change_cap_plans=()
-  local cb cn cap_slug spec_rel plan_rel
-  while IFS=$'\t' read -r cb cn; do
-    [[ -n "$cb" ]] || continue
-    cap_slug=$(slugify "$cb")
-    spec_rel=$(jq -r --arg b "${cb}.md" '.base[]? | select(((.|sub(".*/"; ""))==$b))' "$inv_path" | head -1)
-    plan_rel=$(jq -r --arg n "${cn}.md" '.plans[]? | select(((.|sub(".*/"; ""))==$n))' "$inv_path" | head -1)
-    if [[ -z "$spec_rel" ]]; then
-      err "Phase 4: change candidate '$cb' not found in inventory.base; skipping"
-      continue
-    fi
-    if [[ -z "$plan_rel" ]]; then
-      err "Phase 4: change candidate '$cb': plan '$cn' not found in inventory.plans; skipping"
-      continue
-    fi
-    change_cap_slugs+=("$cap_slug")
-    change_cap_names+=("$cn")
-    change_cap_specs+=("$spec_rel")
-    change_cap_plans+=("$plan_rel")
-  done < <(jq -r '(.change_candidates // {}) | to_entries[]? | "\(.key)\t\(.value)"' "$inv_path")
-
-  is_change_cap() {
-    local needle="$1" i
-    for i in "${change_cap_slugs[@]:-}"; do
-      [[ "$i" == "$needle" ]] && return 0
-    done
-    return 1
-  }
-
-  get_change_cap_index() {
-    local needle="$1" i
-    for i in "${!change_cap_slugs[@]}"; do
-      [[ "${change_cap_slugs[$i]}" == "$needle" ]] && { printf '%s' "$i"; return 0; }
-    done
-    return 1
-  }
 
   # --- Initialize OpenSpec dir.
   if [[ ! -d "$root/openspec" ]]; then
@@ -1385,25 +1110,6 @@ _execute() {
     fi
   done <<< "$accepted_caps"
 
-  # --- 1b. Convert accepted change-candidate translations into change folders.
-  # Reads each translation that Phase 2 wrote to openspec/specs/<cap>/spec.md,
-  # rewrites it as a delta + proposal + tasks under openspec/changes/<name>/,
-  # then deletes the openspec/specs/<cap>/ landing.
-  local cap_idx cn sr pr cb_for_cap
-  while IFS= read -r cap; do
-    [[ -n "$cap" ]] || continue
-    if is_change_cap "$cap"; then
-      cap_idx=$(get_change_cap_index "$cap") || continue
-      cn="${change_cap_names[$cap_idx]}"
-      sr="${change_cap_specs[$cap_idx]}"
-      pr="${change_cap_plans[$cap_idx]}"
-      cb_for_cap="${sr##*/}"
-      cb_for_cap="${cb_for_cap%.md}"
-      _install_change_folder "$root" "$cb_for_cap" "$cn" "$cap" "$sr" "$pr" \
-        || err "Phase 4: _install_change_folder failed for '$cap'"
-    fi
-  done <<< "$accepted_caps"
-
   # --- 2. Archive each source spec with banner; build basename->capability map.
   mkdir -p "$root/.workflow/legacy-specs"
   local spec_dir
@@ -1424,16 +1130,7 @@ _execute() {
     local banner_caps="$cap_for_src"
     local banner=""
     if grep -qx "$cap_for_src" <<< "$accepted_caps"; then
-      if is_change_cap "$cap_for_src"; then
-        local _cn_idx cn_for_cap
-        _cn_idx=$(get_change_cap_index "$cap_for_src") || true
-        cn_for_cap="${change_cap_names[$_cn_idx]:-}"
-        banner=$(printf '# [Legacy] %s\n\n' "$title"
-                 printf '> Translated to in-flight OpenSpec change `%s`.\n>\n' "$cn_for_cap"
-                 printf '> Source preserved for reference. Behavior changes belong in `openspec/changes/%s/specs/<capability>/spec.md` until the change is archived.\n\n' "$cn_for_cap")
-      else
-        banner=$(_render_banner "$title" "$banner_caps")
-      fi
+      banner=$(_render_banner "$title" "$banner_caps")
     elif grep -qx "$cap_for_src" <<< "$skipped_caps"; then
       banner=$(printf '# [Legacy] %s\n\n' "$title"
                printf '> Source preserved as-is — translation was skipped during migration.\n\n')
@@ -1460,16 +1157,6 @@ _execute() {
       done)
     fi
   done
-
-  # --- 3b. Translate legacy spec-audit config (best-effort, no-op if absent).
-  # Must run before step 5's spec-dir removal so the source is still readable.
-  # Pass change-candidate slugs so the helper can drop them from modules'
-  # specs arrays (those caps live at openspec/changes/, not openspec/specs/).
-  local _ccs_csv=""
-  if [[ ${#change_cap_slugs[@]} -gt 0 ]]; then
-    _ccs_csv=$(IFS=,; printf '%s' "${change_cap_slugs[*]}")
-  fi
-  _translate_audit_config "$root" "$accepted_caps" "$_ccs_csv"
 
   # --- 4. Preserve original .specs.
   if [[ -f "$root/.specs" ]]; then

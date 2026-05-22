@@ -1,6 +1,7 @@
 ---
 name: promote
 description: Use when checking which project skills should be available globally — finds skills not yet promoted and recommends which to symlink to ~/.claude/skills/
+tags: [personal]
 ---
 
 # Skill Promotion Audit

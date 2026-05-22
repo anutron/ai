@@ -1,6 +1,7 @@
 ---
 name: bugbash
 description: Use when the user wants to do a QA session or report multiple bugs — interactive session where bugs are reported conversationally and agents fix them in parallel
+tags: [workflow]
 ---
 
 # Bug Bash
@@ -21,7 +22,7 @@ If agent teams are not enabled, report: "Agent teams required. Add `CLAUDE_CODE_
 
 ## Arguments
 
-- `$ARGUMENTS` - Optional subcommand: `status`, `done`, `report`, `review`, or empty to start/continue
+- `$ARGUMENTS` - Optional subcommand: `status`, `done`, `report`, or empty to start/continue
 
 ## Context
 
@@ -46,7 +47,6 @@ Bugs live in status folders — the folder IS the status. No need to read files 
     bug-004.md
   in-progress/       # Fix agent actively working
     bug-002.md
-  pending-merge/     # Agent done, gated for user review before merge (see Merge gate)
   blocked/           # Agent stopped — needs user input before continuing
   merged/            # Fix merged, awaiting acceptance testing
   verified/          # Passed acceptance testing — done
@@ -64,10 +64,7 @@ Bugs live in status folders — the folder IS the status. No need to read files 
 mv .bug-bash/todo/bug-001.md .bug-bash/investigating/   # investigation started
 mv .bug-bash/investigating/bug-001.md .bug-bash/in-progress/  # investigation done, fix dispatched
 mv .bug-bash/investigating/bug-001.md .bug-bash/blocked/      # high-risk conflict, needs user input
-mv .bug-bash/in-progress/bug-001.md .bug-bash/merged/   # fix merged (clean case, no gate)
-mv .bug-bash/in-progress/bug-001.md .bug-bash/pending-merge/  # gate triggered, awaiting user review
-mv .bug-bash/pending-merge/bug-001.md .bug-bash/merged/  # user approved, merged
-mv .bug-bash/pending-merge/bug-001.md .bug-bash/failed/  # user discarded
+mv .bug-bash/in-progress/bug-001.md .bug-bash/merged/   # fix merged
 mv .bug-bash/in-progress/bug-001.md .bug-bash/failed/   # agent failed
 mv .bug-bash/in-progress/bug-001.md .bug-bash/conflict/  # merge conflict
 mv .bug-bash/in-progress/bug-001.md .bug-bash/blocked/   # agent needs user input
@@ -84,7 +81,7 @@ When invoked with no arguments (or the session is already active):
 1. **Initialize if needed:**
    - Create status folders:
      ```bash
-     mkdir -p .bug-bash/{todo,investigating,in-progress,pending-merge,blocked,merged,verified,failed,conflict,attachments}
+     mkdir -p .bug-bash/{todo,investigating,in-progress,blocked,merged,verified,failed,conflict,attachments}
      ```
    - Add `.bug-bash/` to `.gitignore` if not already there (append, don't overwrite)
    - Initialize internal state:
@@ -149,18 +146,6 @@ Parse the user's description and classify into one of three tiers:
 → If user clarifies: update understanding, proceed.
 → Max 1 clarification round, then dispatch with best understanding.
 
-#### Pattern-cleanup pre-flight
-
-If the bug report contains pattern-cleanup keywords ("remove all", "clean up", "drop references to", "delete all", "legacy", "dead", "deprecated"), exceed the search budget once: run a single comprehensive `Grep` for the pattern across the relevant scope. Then surface the full extent to the user before filing the bug:
-
-> "You named A; the same pattern exists in B and C. Scope this bug to all three, or just A?"
-
-Wait for the user's answer before writing the bug file. Pattern cleanup is the one class where missing the full extent guarantees rework.
-
-#### Workflow-instruction detection
-
-If the bug report includes wording that prescribes a workflow (e.g., "via a PR", "via a proper OpenSpec change", "with `--no-verify`", "as drift cleanup", "as a hotfix"), capture that wording verbatim into the bug file's "User's Exact Ask" section (see Step 4). The fix agent will defer to that section over the dispatcher's drift-vs-gap classification. If the prescribed workflow doesn't make sense for the project, surface that to the user before dispatching the fix.
-
 ### Step 3: Save Attachments
 
 If the user provided screenshots or images:
@@ -184,9 +169,6 @@ worktree_branch: bug-bash/BUG-<NNN>
 attachments:
   - <filename if any>
 ---
-
-## User's Exact Ask
-<verbatim copy of the user's bug report message — their words, unedited. Highest-priority guidance for the fix agent: if anything below conflicts with this section, defer to this section.>
 
 ## Description
 <what's broken, from user's report — their words, not your investigation>
@@ -313,8 +295,6 @@ This prevents agents from working against stale code that references APIs change
 
 Each bug fix follows the agent-driven-development pattern. The implementer agent follows TDD (`skills/test-driven-development/SKILL.md`), self-reviews per verification-before-completion (`skills/verification-before-completion/SKILL.md`), and references debugging docs for root cause analysis.
 
-Before dispatching, do a one-line self-review: "Did I add anything to the agent prompt that the user didn't ask for, or omit anything they did ask for?" If yes, set `merge_gate=divergence` on the bug file's frontmatter (so the completion handler holds it for review — see Merge gate, below).
-
 Use the Agent tool with `run_in_background: true` and `mode: "bypassPermissions"`:
 
 ```
@@ -332,11 +312,6 @@ This bug fix follows agent-driven-development. Read `skills/agent-driven-develop
 For debugging, also read:
 - `skills/debug/root-cause-tracing.md` — systematic hypothesis-driven debugging
 - `skills/debug/defense-in-depth.md` — making fixes robust against related failures
-
-### User's Exact Ask
-<full contents of bug.md User's Exact Ask section>
-
-This section is the highest-priority guidance. If anything below conflicts with it (including the Spec-Aware Project branching), defer to this section.
 
 ### Bug Description
 <full contents of bug.md Description section>
@@ -445,43 +420,6 @@ Execution is autonomous -- the controller handles all statuses internally withou
 
 ### Step 2: Merge (on success)
 
-#### Followup capture
-
-Every "out of scope" / "concerns" / "follow-up" item in the agent's report must resolve into one of three outcomes — they cannot be silently dropped:
-
-- **Extend scope** — re-dispatch the agent on the same branch with the additional work (after user approval), OR
-- **Capture as task** — call `TaskCreate` to track the followup, OR
-- **Explicit won't-fix** — the user reviews and acknowledges the item as out of scope.
-
-Surface the followups to the user as a short list and ask which outcome applies. If anything remains unresolved, set `merge_gate=concerns` on the bug file frontmatter.
-
-#### Merge gate
-
-Auto-merge is the default. Hold the bug in `pending-merge/` (instead of merging) when any of the following are true:
-
-- `merge_gate=divergence` was set during dispatch (dispatcher prompt diverged from user's literal ask)
-- Agent reported `DONE_WITH_CONCERNS`
-- `merge_gate=concerns` was set during followup capture (work queued or pending decision)
-- Project is OpenSpec (`test -d openspec`) and the fix touched files under `openspec/specs/**/*.md`
-
-When gating:
-```bash
-mv .bug-bash/in-progress/bug-<NNN>.md .bug-bash/pending-merge/
-```
-
-Surface to the user with a one-line summary:
-```
-BUG-<NNN> pending merge: <title>
-  Reason: <divergence | concerns | base-spec edit>
-  Run /bugbash review to merge or discard.
-```
-
-The worktree and branch stay intact until the user decides. Do NOT auto-merge gated bugs even on `done` — they require explicit review.
-
-#### Clean merge path
-
-If no gate triggered, proceed to merge:
-
 ```bash
 # Make sure we're on the main branch
 git checkout <original-branch>
@@ -568,10 +506,10 @@ When invoked with `status` argument, or user says "status":
 Get status by listing each folder (no file reads needed for counts):
 
 ```bash
-ls .bug-bash/todo/ .bug-bash/investigating/ .bug-bash/in-progress/ .bug-bash/pending-merge/ .bug-bash/blocked/ .bug-bash/merged/ .bug-bash/verified/ .bug-bash/failed/ .bug-bash/conflict/ 2>/dev/null
+ls .bug-bash/todo/ .bug-bash/investigating/ .bug-bash/in-progress/ .bug-bash/blocked/ .bug-bash/merged/ .bug-bash/verified/ .bug-bash/failed/ .bug-bash/conflict/ 2>/dev/null
 ```
 
-Read titles only from in-progress, pending-merge, blocked, and todo bugs for the table. Print:
+Read titles only from in-progress, blocked, and todo bugs for the table. Print:
 
 ```
 ## Bug Bash Status
@@ -581,39 +519,16 @@ Read titles only from in-progress, pending-merge, blocked, and todo bugs for the
 | 001 | <title> | verified |
 | 002 | <title> | merged |
 | 003 | <title> | in-progress |
-| 004 | <title> | pending-merge (divergence) |
-| 005 | <title> | blocked |
-| 006 | <title> | todo |
+| 004 | <title> | blocked |
+| 005 | <title> | todo |
 
 Active: <N> agents (count of in-progress/)
-Pending review: <N> (run /bugbash review to merge or discard)
 Queue: <N> todo (file-overlap conflicts)
 Blocked: <N> (needs user input)
 Merged: <N> (awaiting acceptance testing)
 Verified: <N> (passed acceptance testing)
 Issues: <N> failed, <N> conflict
 ```
-
----
-
-## Review (Pending-Merge Resolution)
-
-When invoked with `review` argument, or user says "review pending":
-
-For each bug in `.bug-bash/pending-merge/`:
-
-1. Read the bug file. Print a one-screen summary:
-   - Title and gate reason (`merge_gate=divergence | concerns | base-spec edit | DONE_WITH_CONCERNS`)
-   - Resolution section (what the agent did)
-   - Any unresolved followups
-   - Files changed (from agent report or `git diff <branch>`)
-2. Ask the user via `AskUserQuestion`: **Merge / Extend scope / Discard**
-   - **Merge** — proceed with the clean merge path (`git merge bug-bash/BUG-<NNN> --no-edit`), then `mv .bug-bash/pending-merge/bug-<NNN>.md .bug-bash/merged/`
-   - **Extend scope** — re-dispatch the agent on the same branch with the extension instructions, move back to `in-progress/`
-   - **Discard** — abandon the work: `git worktree remove --force`, `git branch -D`, move to `failed/`
-3. Process bugs serially — one decision at a time. The user reviews each gated bug before moving to the next.
-
-Skip this command if `pending-merge/` is empty.
 
 ---
 
@@ -628,10 +543,6 @@ If agents are still running (files in `in-progress/`):
 <N> agents still working. Waiting for completion before wrap-up...
 ```
 Wait for all active agents to complete (check with TaskOutput).
-
-### Step 1b: Resolve Pending-Merge
-
-If any bugs are in `.bug-bash/pending-merge/`, run the Review flow (see above) before generating the summary. Wrap-up cannot complete with gated bugs unresolved — they require explicit user decisions.
 
 ### Step 2: Final Summary
 
@@ -764,22 +675,6 @@ grep -l "<filename>" .bug-bash/in-progress/bug-*.md 2>/dev/null
 
 This is not optional. Dispatching two agents that touch the same file wastes both agents' work when the second merge conflicts.
 
-### Cross-bug Capability Overlap Check (SOFT GATE)
-
-After the file-overlap check passes, scan in-progress and todo bugs for *capability* overlap with the new bug:
-
-- Same OpenSpec capability mentioned (`openspec/specs/<capability>/spec.md`)
-- Same component/system named in titles or descriptions (heuristic: shared proper-noun keyword like a class name or feature name)
-- Same domain area (auth, billing, sync, etc.)
-
-When overlap is detected, surface to the user before dispatching:
-
-> "BUG-<NNN> overlaps with BUG-<MMM> (both touch <capability/component>). Batch into one fix, dispatch separately and merge sequentially, or proceed in parallel?"
-
-This is a soft gate — if the user doesn't respond, default to proceeding in parallel after a brief pause. Capture the user's decision in the bug file's `## Notes` section so it's visible to the fix agent.
-
-Treat capability-only overlap as advisory; same-file overlap above is the hard gate.
-
 ### Merge Order
 
 Merge in completion order (first done, first merged). If a later merge conflicts because an earlier merge changed the same area, follow the conflict flow above.
@@ -823,8 +718,6 @@ When processing a bug report, you MUST NOT use:
 - `Grep` — up to 1 call to locate a component/function by keyword
 - **Total: max 3 search calls per bug, zero file reads**
 - Goal: populate "Files Likely Involved" so the agent has a starting point
-
-**Pattern-cleanup exception:** when the bug report contains pattern-cleanup keywords (see Bug Intake → Pattern-cleanup pre-flight), one additional comprehensive `Grep` is allowed — the goal is to surface the full scope to the user before dispatch, which is the highest-leverage thing the dispatcher can do for that bug class.
 
 ### Always Allowed
 

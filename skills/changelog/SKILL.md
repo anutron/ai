@@ -2,6 +2,7 @@
 name: changelog
 allowed-tools: Bash(git log:*), Bash(git diff:*), Bash(git show:*), Bash(git tag:*)
 description: Use when the user asks for a changelog, release notes, or summary of recent changes
+tags: [personal]
 ---
 
 ## Context

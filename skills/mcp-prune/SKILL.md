@@ -1,6 +1,7 @@
 ---
 name: mcp-prune
 description: Analyze active MCP servers and disable irrelevant ones for the current project. Use when starting work in a project with many global MCP servers that waste context tokens. Saves config to project settings.
+tags: [personal]
 ---
 
 ## Context

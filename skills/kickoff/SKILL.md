@@ -2,6 +2,7 @@
 name: kickoff
 description: "Use when starting a brand new project from scratch -- runs discovery, picks a tech stack tier, then hands off to brainstorm and build. Guides non-technical and technical users alike."
 user-invocable: true
+tags: [personal]
 ---
 
 # Kickoff: New Project from Zero

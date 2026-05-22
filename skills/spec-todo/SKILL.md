@@ -1,6 +1,7 @@
 ---
 name: spec-todo
 description: "List, pick, and execute deferred work items from .workflow/todo/. Use when the user asks about backlog, deferred work, or what needs doing."
+tags: [spec]
 ---
 
 # Spec todo

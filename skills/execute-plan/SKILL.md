@@ -2,6 +2,7 @@
 name: execute-plan
 description: "Use when an OpenSpec change is approved and ready to implement — executes the change's tasks.md with agent-driven development, worktree isolation, TDD discipline, two-stage review, native Task dependencies for parallel execution, and `openspec archive` at the end."
 user-invocable: true
+tags: [spec]
 ---
 
 # Execute Plan (OpenSpec change)
@@ -80,9 +81,7 @@ This skill is OpenSpec-only. The target project MUST have an `openspec/` directo
    - [ ] 3.1 ...   <!-- parallel with stage 2 -->
    ```
 
-   Both `## N. <name>` (canonical, emitted by `/brainstorm`) and `## Phase N: <name>` (legacy / hand-written) headings are accepted as stage boundaries. Phase-style files often omit the explicit `**Depends on:**` lines — that's fine; fall back to numerical ordering for those (Stage N depends on Stage N-1).
-
-   Each H2 group is one stage. Extract:
+   Each `## N. <name>` group is one stage. Extract:
 
    - **Stages**: ordered list of discrete work chunks (one per H2 group).
    - **Dependencies**: the `**Depends on:** Stage N[, Stage M]` line under each H2. If absent, infer from numerical order (Stage N depends on Stage N-1).
@@ -98,26 +97,20 @@ This skill is OpenSpec-only. The target project MUST have an `openspec/` directo
 
 ## Worktree decision
 
-Inspect the dependency graph from Phase 0 step 7. **If any stages share a blocker set** (siblings — multiple stages with the same `**Depends on:**` and no shared files, eligible to run concurrently), worktree mode is required. Notify the user, don't ask:
-
-> **This change has parallel-eligible stages: <list>. Running in worktree mode at `.claude/worktree/<name>/` so they can execute concurrently.**
-
-If the dependency graph is **fully sequential** (each stage depends only on the previous one), ask:
+Before execution begins, ask the user how to run the change:
 
 > **How do you want to run this change?**
 >
 > - **Execute on current branch** (recommended) — stages run here, commits land on this branch as they complete.
-> - **Execute in a worktree** — creates an isolated branch so you can keep working or run another agent in this session.
+> - **Execute in a worktree** — creates an isolated branch so you can keep working or run another agent in this session. Only useful if you're running multiple coding workstreams at the same time.
 
-Default to "current branch" for sequential changes if the user doesn't have a preference. The branch name should match the change name (`<name>`) wherever possible — this is the convention `/save-w-specs` and the pre-commit hook use to identify the active change.
+Default to "current branch" if the user doesn't have a preference. The branch name should match the change name (`<name>`) wherever possible — this is the convention `/save-w-specs` and the pre-commit hook use to identify the active change.
 
-When worktree mode is in effect (either auto-selected for parallel changes or chosen by the user):
+If the user chooses worktree mode:
 
 1. Create a worktree at `.claude/worktree/<name>/` for the overall execution.
 2. All per-stage worktrees nest inside that (`.claude/worktree/<name>/<task-slug>/`).
 3. After all stages complete and merge to the worktree's branch, present the result for the user to merge back to their original branch (via `/close-worktree` or manual merge).
-
-**Why current-branch mode can't parallelize:** it has one working directory. Two implementer agents writing to the same tree would clobber each other. Worktrees give each agent isolated state — the only way parallel-eligible stages actually run in parallel.
 
 ---
 
@@ -183,26 +176,9 @@ The implementer reports one of: `DONE`, `DONE_WITH_CONCERNS`, `NEEDS_CONTEXT`, `
 
 Handle all statuses internally per the autonomous execution rules (see below). Never ask the user.
 
-### Review (with test-only fast-path)
+### Two-stage review
 
-**Implementer self-verification runs first, regardless of stage type.** Before reporting `DONE`, the implementer must run the project's linter and test suite (per `verification-before-completion`) and include the captured output in their result. Lint and trivial test failures must never reach review — they're cheap to catch in the implementer's own loop.
-
-**Test-only stages** — stages that produce only test files (no production code). Detect by either:
-
-- The stage is the canonical "## 1. Tests" section, OR
-- The implementer's diff touches only test-like paths (`*_test.go`, `**/spec/**`, `**/__tests__/**`, `**/*.test.{ts,tsx,js,jsx}`, `**/test_*.py`, `**/tests/**`, etc.)
-
-For test-only stages, run **one combined review pass** that covers both spec compliance and test correctness:
-
-1. Dispatch a single reviewer with the spec-reviewer prompt PLUS instructions to also flag test-correctness issues (wrong assertions, missing edge cases that the deltas imply, misuse of test fixtures, brittle setup) and obvious structural problems (duplicated test bodies, hard-coded values that should be derived from the scenario).
-2. Verify every scenario in the relevant delta has a corresponding test.
-3. Verify the tests fail in the expected way (not from import errors, syntax errors, or fixture wiring problems — they should fail because the production code doesn't yet implement the behavior).
-4. If issues found: implementer fixes, reviewer re-reviews. **Cap at one fix loop** for test-only stages — if the second pass still has blocking issues, escalate (per the BLOCKED ladder) rather than looping further. Test code that's still wrong after one fix is a signal the deltas themselves are unclear; surface it.
-5. Skip the separate code quality reviewer entirely.
-
-Rationale: test code with no production code to validate against has limited "quality" surface. The cheap stuff (lint, syntax) is caught by implementer self-verification; the substantive stuff (scenario coverage, correctness, structure) is caught by the combined pass. Two full review cycles before any production code lands is over-rotated.
-
-**All other stages** — full two-stage review:
+After the implementer finishes:
 
 1. **Dispatch spec reviewer** — checks implementation matches the change's deltas (every scenario in the relevant delta has a corresponding passing test, behavior matches `**WHEN**`/`**THEN**`). Uses `skills/agent-driven-development/spec-reviewer-prompt.md`. Provide the delta specs and the design doc as inputs.
 2. If issues found: implementer fixes, spec reviewer re-reviews. Loop until clean.
@@ -254,34 +230,9 @@ If anything fails, route the failure back into Phase 2 (re-dispatch the affected
 
 ---
 
-## Phase 4: Quality gates
+## Phase 4: Archive the change
 
-Before archiving, offer quality checks via `AskUserQuestion`:
-
-> "Change `<name>` ready. Run quality checks before archiving?"
-
-Options:
-
-- **Both** (recommended) — run `/ralph-review` and `/spec-audit`. Ralph reviews against the active deltas; ralph closes the gate (archives) when done.
-- **Ralph-review only** — autonomous review loop against active deltas. Ralph closes the gate when done.
-- **Spec-audit only** — audit spec coverage. Execute-plan closes the gate after.
-- **Done** — skip checks. Execute-plan closes the gate immediately.
-
-Handoff logic:
-
-- **Both / Ralph-review only**: invoke `/ralph-review`. Ralph owns the rest of the flow — it runs the review loop, addresses findings, and archives the change at its Done step. Stop here. Do not proceed to Phase 5 or Phase 6. If "Both" was chosen, also dispatch `/spec-audit` in parallel before handing off.
-- **Spec-audit only**: run it, then proceed to Phase 5.
-- **Done**: proceed to Phase 5.
-
-Quality gates are token-heavy, so opt-in — but offering them while the change is still active (deltas intact, reviewable) makes them actually usable.
-
----
-
-## Phase 5: Archive the change
-
-Skipped if the user chose ralph-review in Phase 4 — ralph closes the gate.
-
-Otherwise:
+Once Phase 3 passes, archive the change:
 
 ```
 openspec archive <name> --yes
@@ -299,11 +250,9 @@ If the archive fails (e.g. validation errors when merging deltas), surface the e
 
 ---
 
-## Phase 6: Summary
+## Phase 5: Summary
 
-Skipped if ralph-review took over — ralph produces its own completion summary.
-
-Otherwise, produce one final report after archiving:
+Produce one final report after archiving:
 
 ```markdown
 ## Change Execution Complete
@@ -337,6 +286,23 @@ Otherwise, produce one final report after archiving:
 
 {Parked tasks with reasons, blockers that could not be resolved, semantic conflicts encountered}
 ```
+
+---
+
+## Phase 6: Quality gates
+
+After presenting the summary report, offer quality checks via `AskUserQuestion`:
+
+> "Change `<name>` archived. Want to run quality checks?"
+
+Options:
+
+- **Both** (recommended) — run `/ralph-review` and `/spec-audit` in parallel.
+- **Ralph-review only** — autonomous review loop comparing implementation against the merged base specs.
+- **Spec-audit only** — audit spec coverage, find behavioral gaps post-archive.
+- **Done** — skip quality gates.
+
+These are token-heavy, so they are opt-in. But offering them at the natural completion point makes them easy to reach.
 
 ---
 
