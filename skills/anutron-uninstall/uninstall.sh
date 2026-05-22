@@ -2,12 +2,17 @@
 # uninstall.sh — Per-project uninstaller for the anutron (claude-skills) kit.
 #
 # Reads the breadcrumb (.anutron-install.json) and reverses every
-# operation that install.sh performed: removes skill symlinks,
-# hook symlinks, anutron entries from settings.json, the delimited
+# operation that install.sh performed: removes skill symlinks/directories,
+# hook symlinks/files, anutron entries from settings.json, the delimited
 # block from CLAUDE.md, and the breadcrumb itself.
 #
 # Runs in the current working directory. If run twice: first run
 # cleans, second run errors cleanly.
+#
+# Mode awareness:
+#   mode=symlink (new breadcrumb) — rm each link in .claude/skills/ and hooks
+#   mode=copy    (new breadcrumb) — rm -rf each dir in .claude/skills/; rm -f hook files
+#   (no mode field, legacy breadcrumb) — rm -f unconditionally (prior behaviour)
 
 set -euo pipefail
 
@@ -34,7 +39,7 @@ read_breadcrumb() {
 }
 
 # ============================================================
-# 2. Remove skill symlinks
+# 2. Remove skill symlinks / directories
 # ============================================================
 
 remove_skills() {
@@ -51,23 +56,70 @@ remove_skills() {
     return
   fi
 
+  # Determine install mode from breadcrumb.
+  # Falls back to "" (legacy) if the field is missing or null.
+  local mode
+  mode=$(echo "$breadcrumb" | jq -r '.mode // empty')
+
+  # Determine skill list: prefer scopeResolution.skills (new breadcrumb),
+  # fall back to legacy .skills array.
+  local has_scope_resolution
+  has_scope_resolution=$(echo "$breadcrumb" | jq -r 'if .scopeResolution.skills then "1" else "0" end')
+
   local skill_count
-  skill_count=$(echo "$breadcrumb" | jq -r '.skills | length')
+  if [ "$has_scope_resolution" = "1" ]; then
+    skill_count=$(echo "$breadcrumb" | jq -r '.scopeResolution.skills | length')
+  else
+    skill_count=$(echo "$breadcrumb" | jq -r '.skills | length')
+  fi
+
   local i=0
   while [ "$i" -lt "$skill_count" ]; do
     local name
-    name=$(echo "$breadcrumb" | jq -r ".skills[$i]")
-    local link_path="$target_dir/$name"
-
-    if [ -L "$link_path" ]; then
-      rm -f "$link_path"
-      removed=$((removed + 1))
-    elif [ -e "$link_path" ]; then
-      # Regular file/dir — user may have replaced it
-      skipped=$((skipped + 1))
-      skipped_names+=("$name")
+    if [ "$has_scope_resolution" = "1" ]; then
+      name=$(echo "$breadcrumb" | jq -r ".scopeResolution.skills[$i]")
+    else
+      name=$(echo "$breadcrumb" | jq -r ".skills[$i]")
     fi
-    # If doesn't exist: nothing to do
+    local skill_path="$target_dir/$name"
+
+    if [ "$mode" = "copy" ]; then
+      # Copy mode: skill was installed as a real directory
+      if [ -d "$skill_path" ] && [ ! -L "$skill_path" ]; then
+        rm -rf "$skill_path"
+        removed=$((removed + 1))
+      elif [ -L "$skill_path" ]; then
+        # Shouldn't happen in copy mode but clean up if present
+        rm -f "$skill_path"
+        removed=$((removed + 1))
+      fi
+      # If doesn't exist: nothing to do (idempotent)
+    elif [ "$mode" = "symlink" ]; then
+      # Symlink mode: skill was installed as a symlink
+      if [ -L "$skill_path" ]; then
+        rm -f "$skill_path"
+        removed=$((removed + 1))
+      elif [ -e "$skill_path" ]; then
+        # Regular file/dir — user may have replaced it
+        skipped=$((skipped + 1))
+        skipped_names+=("$name")
+      fi
+      # If doesn't exist: nothing to do
+    else
+      # Legacy mode (no mode field): best-effort removal — rm -f works for both
+      # symlinks and regular files; does not recurse into directories the user owns.
+      if [ -L "$skill_path" ]; then
+        rm -f "$skill_path"
+        removed=$((removed + 1))
+      elif [ -f "$skill_path" ]; then
+        rm -f "$skill_path"
+        removed=$((removed + 1))
+      elif [ -e "$skill_path" ]; then
+        # Unexpected: a directory here in legacy mode. Skip to avoid data loss.
+        skipped=$((skipped + 1))
+        skipped_names+=("$name")
+      fi
+    fi
     i=$((i + 1))
   done
 
@@ -82,7 +134,7 @@ remove_skills() {
 }
 
 # ============================================================
-# 3. Remove hook symlinks
+# 3. Remove hook symlinks / files
 # ============================================================
 
 remove_hooks() {
@@ -101,6 +153,10 @@ remove_hooks() {
     return
   fi
 
+  # Determine install mode from breadcrumb.
+  local mode
+  mode=$(echo "$breadcrumb" | jq -r '.mode // empty')
+
   local cmd_count
   cmd_count=$(echo "$breadcrumb" | jq -r '.hookCommands | length')
   local i=0
@@ -108,15 +164,35 @@ remove_hooks() {
     local cmd_path
     cmd_path=$(echo "$breadcrumb" | jq -r ".hookCommands[$i]")
 
-    if [ -L "$cmd_path" ]; then
-      rm -f "$cmd_path"
-      removed=$((removed + 1))
-    elif [ -f "$cmd_path" ]; then
-      # Regular file — user may have replaced it
-      local basename
-      basename="$(basename "$cmd_path")"
-      skipped=$((skipped + 1))
-      skipped_names+=("$basename")
+    if [ "$mode" = "copy" ]; then
+      # Copy mode: hook was installed as a regular file (not a symlink)
+      if [ -L "$cmd_path" ]; then
+        # Symlink where we expected a regular file — still clean it up
+        rm -f "$cmd_path"
+        removed=$((removed + 1))
+      elif [ -f "$cmd_path" ]; then
+        rm -f "$cmd_path"
+        removed=$((removed + 1))
+      fi
+      # If doesn't exist: idempotent
+    elif [ "$mode" = "symlink" ]; then
+      # Symlink mode: hook was installed as a symlink
+      if [ -L "$cmd_path" ]; then
+        rm -f "$cmd_path"
+        removed=$((removed + 1))
+      elif [ -f "$cmd_path" ]; then
+        # Regular file — user may have replaced it
+        local basename
+        basename="$(basename "$cmd_path")"
+        skipped=$((skipped + 1))
+        skipped_names+=("$basename")
+      fi
+    else
+      # Legacy: rm -f handles symlinks and regular files
+      if [ -L "$cmd_path" ] || [ -f "$cmd_path" ]; then
+        rm -f "$cmd_path"
+        removed=$((removed + 1))
+      fi
     fi
     i=$((i + 1))
   done
@@ -294,11 +370,16 @@ delete_breadcrumb() {
 # ============================================================
 
 print_summary() {
+  local breadcrumb="$1"
   local project_dir
   project_dir="$(pwd)"
 
-  echo "Uninstalled anutron kit from ${project_dir}:"
-  echo "  Skills: ${SKILLS_REMOVED} symlinks removed"
+  # Determine mode for display
+  local mode
+  mode=$(echo "$breadcrumb" | jq -r '.mode // "legacy"')
+
+  echo "Uninstalled anutron kit from ${project_dir} (mode: ${mode}):"
+  echo "  Skills: ${SKILLS_REMOVED} removed"
 
   if [ "${SKILLS_SKIPPED:-0}" -gt 0 ]; then
     local names_str=""
@@ -307,7 +388,7 @@ print_summary() {
       if $first; then first=false; else names_str+=", "; fi
       names_str+="$name"
     done
-    echo "    (skipped ${SKILLS_SKIPPED}: ${names_str} — not symlinks, may be user-owned)"
+    echo "    (skipped ${SKILLS_SKIPPED}: ${names_str} — not managed by anutron)"
   fi
 
   if [ "${HOOKS_REMOVED:-0}" -gt 0 ]; then
@@ -367,10 +448,10 @@ main() {
   local breadcrumb
   breadcrumb=$(read_breadcrumb)
 
-  # Step 2: Remove skill symlinks
+  # Step 2: Remove skill symlinks / directories (mode-aware)
   remove_skills "$breadcrumb"
 
-  # Step 3: Remove hook symlinks
+  # Step 3: Remove hook symlinks / files (mode-aware)
   remove_hooks "$breadcrumb"
 
   # Step 4: Clean settings.json
@@ -383,7 +464,7 @@ main() {
   delete_breadcrumb
 
   # Step 7: Print summary
-  print_summary
+  print_summary "$breadcrumb"
 }
 
 main "$@"

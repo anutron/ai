@@ -1,6 +1,7 @@
 ---
 name: improve
 description: Use at the end of a session to run a retrospective — upgrades skills, fixes codebase gaps, and captures durable knowledge
+tags: [personal]
 ---
 
 # Improve Skills and Capture Knowledge
@@ -171,6 +172,17 @@ After applying changes, present a brief summary of what was done:
 ## Skipped
 - reason for each skipped item
 ```
+
+### Step 7: Offer to run /fewer-permission-prompts
+
+After the summary, use `AskUserQuestion` to offer running `/fewer-permission-prompts`. That skill scans transcripts for read-only Bash/MCP calls that triggered permission prompts and proposes an allowlist for `.claude/settings.json` — a natural follow-up to a retrospective.
+
+- **Question:** "Run /fewer-permission-prompts to trim permission prompts from this session?"
+- **Options:**
+  - "Yes" — invoke `/fewer-permission-prompts` immediately via the Skill tool
+  - "No" — end here
+
+If the user picks Yes, invoke the skill. If No, stop.
 
 ## What NOT to Improve
 

@@ -1,6 +1,7 @@
 ---
 name: pr
 description: Use when code is ready to ship — opens a PR, waits for CI to pass, fixes failures, addresses review comments, and loops until fully green
+tags: [pr]
 ---
 
 ## Context

@@ -1,6 +1,7 @@
 ---
 name: review
 description: Use when the user asks to review code, review current changes, or review a PR number
+tags: [quality]
 ---
 
 # Code Review

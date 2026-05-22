@@ -1,6 +1,7 @@
 ---
 name: write-skill
 description: Use when creating a new skill or improving an existing one — applies best practices for structure, dynamic context, and safety
+tags: [personal]
 ---
 
 # Skill Author

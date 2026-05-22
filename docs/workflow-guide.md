@@ -1,130 +1,205 @@
-# Workflow Guide
+# Workflow guide
 
-## Overview
+This is how the skills in this repo are meant to compose into a single development cycle. It assumes you have the toolkit installed – see the [README](../README.md) for setup. It does not assume CI, a production branch, or any particular team structure – those are conventions, addressed in their own sections at the end.
 
-This workbench is a single git repository where you manage the system that drives how you work with Claude. It contains three things:
+## The why
 
-- **Rules** — CLAUDE.md snippets that control how Claude behaves in every conversation
-- **Skills** — Reusable workflows that teach Claude complex multi-step processes
-- **Specs** — Behavioral contracts that define what you're building before you build it
+Without discipline, the easy answer for AI coding is: describe a thing, let Claude implement, fix what's broken, ship. That works for one feature. It does not work for the tenth. Three things go wrong:
 
-Rules and skills are authored in your working directory and promoted to `~/.claude/` when you want them available globally. Development practices (spec-driven development, TDD) are encoded as rules and skills so they're followed automatically.
+1. **The system drifts.** What you built last week disagrees with what you build today. Nothing tells you when.
+2. **Plans get fuzzier as features get bigger.** "Add a button" is one prompt. "Build a campaign tool" is fifty. Without a written-down agreement on what you're building, Claude makes assumptions you only discover after it's coded.
+3. **You can't review what you didn't write down.** Code review without a behavioral contract degrades to "looks fine I guess."
 
-## How I Manage and Compose CLAUDE.md
+The workflow exists to put a written behavioral contract – a spec – at the start of every change, keep it accurate as code lands, and use it as the reference for every review.
 
-Rules are persistent behavioral instructions compiled into CLAUDE.md files that Claude reads at the start of every conversation. They live as small, focused markdown snippets.
+### The spec is the contract
 
-**Structure:**
+A spec is plain-English language describing what the system should do – inputs, outputs, edge cases, error handling. Not how it's built. **If the spec and the code disagree, the code has a bug.**
 
-- `claude-rules/snippets/global/*.md` — Rules that apply everywhere (formatting, git workflow, interaction style)
-- `claude-rules/snippets/project/*.md` — Rules specific to a single project (tech stack, directory structure, domain knowledge)
-- `claude-rules/compile.sh` — Compiles snippets into dist files, which are symlinked to where Claude reads them
+The spec serves three jobs:
 
-![File layout diagram](images/file-layout.png)
+- **Before code:** it's the agreement between you and Claude on what's being built.
+- **During code:** it's the constraint that prevents drift.
+- **After code:** it's the reference for review.
 
-**Why snippets instead of one big file?**
+### OpenSpec
 
-- **Composable** — Add or remove behaviors without touching unrelated rules
-- **Portable** — Promote a project rule to global scope with one command (`compile.sh promote`)
-- **Reviewable** — Each snippet is a focused, diffable unit
-- **Template variables** — `compile.sh` substitutes `{{VARIABLE}}` placeholders during compilation, keeping snippets portable across machines
+The toolkit uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) as the spec system. OpenSpec is a convention plus a CLI:
 
-See [claude-rules/README.md](../claude-rules/README.md) for full setup instructions.
+- Base specs at `openspec/specs/<capability>/spec.md` are the source of truth.
+- In-flight work lives in `openspec/changes/<name>/` as a folder containing proposal, design, tasks, and delta specs.
+- The lifecycle is `change folder → deltas → tests → implement → archive`. Archive merges the deltas into the base specs and cleans up.
 
-## Skills
+The CLI validates structure, scaffolds new changes, and refuses to archive a change that doesn't pass its checks. We didn't invent OpenSpec. The toolkit's skills (`/brainstorm`, `/execute-plan`, `/ralph-review`, `/spec-audit`, `/save-w-specs`) all adhere to it.
 
-Skills are invokable workflows that handle complex multi-step processes. They live as markdown files in `.claude/skills/` in your working directory. When a skill is ready for use everywhere, you promote it to `~/.claude/skills/` so it's available in all projects.
+Projects opt in by creating an `openspec/` directory. Skills check for it; without it, they still work but skip spec-related behavior.
 
-**Examples:**
+## The cycle
 
-- **`/improve`** — Runs self-critique on the agent's output, then writes recommendations back into rules and skills
-- **`/bugbash`** — Parallelizes QA across multiple sub-agents, each testing a different surface area
-- **`/execute-plan`** — Executes an approved plan document step by step, committing after each step
-- **`/guard`** — Runs the test suite after every change and blocks commits on failure
+The skills compose into a single rhythm. Most of them auto-invoke – you don't type them. You describe what you want, and the workflow takes over.
 
-# Spec-Driven Development
-
-![Spec/TDD cycle](images/spec-tdd-cycle.png)
-
-Specs describe what a feature does — not how it's implemented. They are the source of truth for intent. **Spec > Code.** If the spec and the code disagree, the code has a bug.
-
-The development process follows a fixed order: **interview → spec → plan → test → implement → review → improve**. The spec comes first. The plan is the most important step. Code comes last.
-
-Specs live in a `specs/` directory within each project, opted in via a `.specs` file at the project root. Format:
-
-```markdown
-# SPEC: Feature Name
-
-## Purpose
-Why this exists, what problem it solves
-
-## Interface
-- **Inputs**: What goes in
-- **Outputs**: What comes out
-
-## Behavior
-Given X, the system does Y, resulting in Z
-
-## Test Cases
-- Happy path
-- Error cases
-- Edge cases
+```
+idea → brainstorm → execute-plan → ralph-review → spec-audit → bugbash → ship
+                                       (auto)         (auto)
 ```
 
-Every behavioral change updates the spec on the same turn.
+What each one does:
 
-## The Process
+### Greenfield only: /kickoff and /interview
 
-### 1. Interview
+You only need these when starting from scratch – an empty folder, no project yet. Skip both if you're iterating on an existing project.
 
-Surface requirements, constraints, and edge cases through conversation before any code exists.
+- **`/kickoff`** asks you a few questions about what you're building, picks a tech stack tier from the spectrum, and hands off to brainstorm. Optimized for the moment when you don't yet have a project to attach a spec to.
+- **`/interview`** is the engine kickoff uses to drag context out of you. Unlike everything else in this workflow, interview logs the full transcript to a file – you keep the verbatim discussion for future reference, plus a synthesized summary. Use it directly when you want a discovery conversation without committing to a project yet.
 
-### 2. Spec
+For everything else, skip straight to brainstorm.
 
-Write the behavioral contract: what the feature does, what inputs it accepts, what outputs it produces, how it handles errors. Review and approve before writing code.
+### /brainstorm: getting the idea to a written-down plan
 
-### 3. Plan
+When you describe something creative – adding a feature, changing behavior, building a new piece – `/brainstorm` triggers automatically. You don't type it. Its frontmatter declares "use before any creative work," and Claude picks it up.
 
-Break the spec into ordered implementation steps, each small enough to complete and verify independently. A good plan makes implementation mechanical.
+Brainstorm has one job: **turn a vague idea into a complete, written-down spec and plan.** It walks you through:
 
-### 4. Test
+- Surfacing constraints, edge cases, and decisions you haven't made yet
+- Writing the OpenSpec change folder (proposal, design, delta specs, tasks)
+- Reviewing the result with you, often via inline annotation
+- Asking permission to hand off to `/execute-plan`
 
-Write tests from the spec. Tests encode the spec's behavioral expectations in executable form. All tests should fail at this point.
+This is where most of the time should go. Skim the spec and the plan; engage deeply with the brainstorm itself. That's where misinterpretations get caught before any code is written.
 
-### 5. Implement
+### The handoff: /clear before /execute-plan
 
-Write code to pass the tests. Constrained by the spec (what to build) and validated by the tests (whether it's correct).
+Brainstorm ends by copying an `/execute-plan <change-name>` command to your clipboard. The recommended next step is `/clear` to wipe the conversation context, then paste the command in a fresh session.
 
-### 6. Review
+Why clear? Because brainstorm conversations often explore options that don't make the final cut. If you went deep on "blue button" before deciding on "red button," and then ask execute-plan to build it, it has both the plan and the rich blue-button discussion in context – and might drift. Clearing the context window leaves only the plan you agreed on.
 
-Run tests. Verify against the spec. If something doesn't match, fix the code — not the spec (unless the spec was wrong, in which case update the spec first, then the tests, then the code).
+### /execute-plan: the implementation loop
 
-### 7. Improve
+`/execute-plan` reads the OpenSpec change folder and turns it into working code. It:
 
-Run `/improve` to update rules, skills, and specs based on what was learned during implementation.
+1. Parses `tasks.md` into a dependency graph.
+2. Dispatches sub-agents in isolated worktrees to implement each stage.
+3. Writes the tests from the delta specs first – they should fail.
+4. Implements code until tests pass.
+5. Runs a two-stage review per stage – spec compliance, then code quality.
+6. Merges each stage back, ticks `tasks.md` checkboxes.
+7. Archives the change via `openspec archive <name>`.
 
-## FAQ
+Execute-plan is autonomous once it starts. It doesn't ask you questions mid-flow. It runs until done.
 
-### How do I start using this?
+When it finishes, it asks whether to run the quality gates: `/ralph-review`, `/spec-audit`, both, or skip. The recommended answer is "both."
 
-1. Copy the `claude-rules/` directory into your project
-2. Run `compile.sh link` to set up symlinks
-3. Run `compile.sh compile` to generate CLAUDE.md files
-4. Add a `.specs` file to opt into spec-driven development in projects where you are using Claude to write code
+### /ralph-review: the gap finder
 
-### How do I create skills?
+Ralph review compares your implementation against the merged spec deltas. It uses three sub-agents that each do a fresh-eyes review independently, then the main agent reconciles their findings.
 
-Two ways:
+What it does autonomously: when it finds a problem where the spec is clear about the intended behavior and the code is wrong, it fixes it. Then it re-reviews. Loops until clean.
 
-1. **Start in conversation.** Collaborate with Claude until you achieve an outcome you're happy with. Then run `/improve` — it will identify reusable patterns and write them into skills automatically.
-2. **Be deliberate.** Tell Claude you intend to build a skill and use `/interview` to have it understand your goals and constraints before writing anything.
+What it brings back to you: a short list of questions where the spec wasn't clear enough – "the spec says X but the code does Y; which one is right?" These usually mean the plan needed more detail. You answer the questions; it applies the fixes.
 
-Skills start in your working directory (`.claude/skills/`). When they're ready for use everywhere, promote them to `~/.claude/skills/`.
+There is, in practice, no review where ralph finds nothing. If you're not running it, you're shipping drift.
 
-### What if I have a codebase and I want to start with specs?
+### /spec-audit: the alignment check
 
-Use a Ralph loop to decompose the existing code into specs. This is working backwards — you lose the original intent — but it gives you a starting point. From there, you can refine the specs as you work on the program with Claude. It's always best to start with specs, but it's never too late to add them.
+Spec audit asks a different question than ralph: *does the code agree with the spec*, where ralph asks *does the code do what the spec described*.
 
-### Is this just for Claude Code?
+Two common findings:
 
-The tooling (compile.sh, skill invocation) is Claude Code-specific, but the three-layer model — behavioral rules, reusable workflows, behavioral contracts — works with any AI coding agent that reads context files.
+- **Implementation drift:** the spec said do A and C; the code does A, B, C because B was needed to make A and C work. The audit asks: is B's behavior worth specifying, or was it an implementation detail? Usually the spec gets updated.
+- **Conflicting requirements:** the spec said A, B, C; implementation found B and C can't coexist. The audit surfaces the conflict and asks you to resolve.
+
+Spec audit almost always finds something. It's looking at a different axis than ralph.
+
+### /fixit: one-shot quick fixes
+
+When a change is too small to brainstorm – "make the button red instead of blue" – `/fixit` is the shortcut. It:
+
+1. Creates a worktree.
+2. Writes the spec change.
+3. Updates the test.
+4. Changes the code.
+5. Reviews its own work.
+6. Merges back to main.
+7. Reports a confidence score for the change it made.
+
+If confidence is high, fixit is silent – the change is done and merged. If confidence is intermediate, the main thread surfaces the change for you to approve. If confidence is low – it can't tell which button you meant – it doesn't ship anything and asks for clarification.
+
+Fixit is for changes where there is no design decision to make. Use brainstorm for anything with a "we could go either way" element.
+
+### /bugbash: QA mode
+
+Bugbash turns Claude into a continuous fixit queue. You type `/bugbash` and start clicking around the running app. Every issue you mention – "this button should be on the right," "this text is wrong" – Claude takes as a bugbash ticket, dispatches a fixit job in a worktree, and moves on.
+
+The mode tracks tickets in a `.bugbash/` folder structured like a kanban board – to-do → investigating → in-progress → merged. At the end:
+
+- `/bugbash status` – count of resolved vs unresolved tickets.
+- `/bugbash report` – text summary of the run.
+- `/bugbash review` – opens Plannotator with the list of fixes for regression testing. Annotate each one as "good" or "not yet." Not-yet items respawn as fixit jobs.
+
+Bugbash pairs naturally with: ask Claude to generate a test plan for all unreleased changes, then walk that plan in the running app with bugbash open. Anything broken becomes a ticket. Anything that works gets a green annotation.
+
+## The full rhythm
+
+Putting it together:
+
+1. You describe an idea, or run `/kickoff` if greenfield.
+2. Brainstorm walks you to a written-down change folder. You review.
+3. `/clear`, paste the execute-plan command in a fresh session.
+4. Execute-plan implements. When done, accept the quality gates.
+5. Ralph review fixes what it can, asks about what it can't. You resolve its questions.
+6. Spec audit checks alignment. You confirm or correct.
+7. Spin up locally. Run bugbash. Walk the change in the app. Anything broken becomes a fixit ticket.
+8. When bugbash is clean, ship.
+
+This isn't ceremony – every step earns its keep by catching something the previous step missed. Practical heuristic: run the quality gates 90% of the time. The 10% you can skip are tiny changes – a copy edit, a config tweak – where the gates would be overkill.
+
+## Optional layers
+
+The rhythm above works on a single repo with you as the only contributor. Two extra layers come into play when there's more structure.
+
+### If you have CI
+
+When you push a branch and CI runs, you'll occasionally get failures. Treat them like another quality gate – the `/pr` skill opens the PR and watches CI in a loop, fixing failures and re-pushing until green. You don't have to babysit it.
+
+```
+/pr
+```
+
+Then walk away. CI fails → it reads the failure, makes a fix, pushes, waits. It also watches for review-tool feedback such as CodeRabbit and addresses comments as they arrive. When it exits, the PR is mergeable.
+
+### If you have a prod branch
+
+The convention worth adopting if you don't already: `main` holds shipped-but-not-released code, `production` holds what's actually running. The two diverge by N commits at any time.
+
+Why: rollback. When something breaks in production, you want a single commit or tag to revert to. Without a prod branch, you're guessing which of last week's main commits to roll back.
+
+Pair this with version tagging on every push to production:
+
+```
+git tag v1.2.0
+git push --tags
+```
+
+Now "what was running yesterday" has a name.
+
+If you're solo on a repo, you may also want a personal staging branch – `<your-name>-staging` – that you push to main only after local QA. The advice changes once teammates are pushing to main; you don't want to block them on your QA.
+
+## Skill reference
+
+| Skill | When |
+|-------|------|
+| `/kickoff` | Greenfield, empty project, no idea yet committed to a stack |
+| `/interview` | Discovery conversations where you want a transcript |
+| `/brainstorm` | Auto-triggers on any creative work; turns ideas into change folders |
+| `/execute-plan` | Approved brainstorm → working code, autonomously |
+| `/ralph-review` | Auto-prompted post-implementation; finds gaps against the spec |
+| `/spec-audit` | Auto-prompted post-implementation; finds drift between code and spec |
+| `/fixit` | Tiny one-shot changes with no design decision to make |
+| `/bugbash` | QA mode while clicking through a running app |
+| `/pr` | Opens PR, watches CI, fixes failures until mergeable |
+
+## A note on Plannotator
+
+Several steps above – brainstorm review, spec review, bugbash review – work best with [Plannotator](https://github.com/anutron/plannotator), a browser-based inline annotation tool. When a skill opens Plannotator, you annotate the document with comments or approvals; Claude reads them back and acts on them.
+
+If you don't have Plannotator installed, the workflows fall back to terminal-based review – Claude shows you the doc, you respond in chat. The annotation experience is more precise, but the workflow doesn't require it.

@@ -1,6 +1,7 @@
 ---
 name: disk-cleanup
 description: Use when the user asks about disk space or storage — scans for large storage consumers and identifies cleanup opportunities. Read-only, never deletes without approval
+tags: [personal]
 ---
 
 # Disk Cleanup

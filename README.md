@@ -190,7 +190,6 @@ That's it. One line. The `dir` field says where specs live (defaults to `specs/`
 | Skill | What it does |
 |-------|-------------|
 | [migrate-to-openspec](skills/migrate-to-openspec/SKILL.md) | One-time migration from a legacy `.specs` project to OpenSpec — preserves Given/When/Then fidelity, archives originals at `.workflow/legacy-specs/` |
-| [close-spec-drift](skills/close-spec-drift/SKILL.md) | When an OpenSpec base spec is correct but code or peripheral spec text drifted from it — surfaces full extent of drift, scaffolds a thin change folder (no deltas), hands off to /execute-plan |
 | [spec-writer](skills/spec-writer/SKILL.md) | Thin orchestrator around `openspec instructions <artifact>` — returns enriched proposal/design/tasks/specs templates with project context |
 | [spec-recommender](skills/spec-recommender/SKILL.md) | Detect code without spec coverage, infer intent, recommend OpenSpec capabilities + requirements |
 | [spec-audit](skills/spec-audit/SKILL.md) | Audit OpenSpec coverage — inventory capabilities, map to code, dispatch agents to find behavioral gaps |
@@ -261,7 +260,6 @@ These skills describe how agents should think and work. They're loaded by refere
 | [agent-driven-development](skills/agent-driven-development/SKILL.md) | Use when executing implementation plans with independent tasks -- worktree isolation, TDD discipline, two-stage review |
 | [test-driven-development](skills/test-driven-development/SKILL.md) | Use when implementing any feature or bugfix, before writing implementation code |
 | [verification-before-completion](skills/verification-before-completion/SKILL.md) | Use when about to claim work is complete, before committing or creating PRs -- evidence before assertions always |
-| [tp](skills/tp/SKILL.md) | CLI for checkbox flips and one-line status annotations in markdown task lists (`tasks.md`, test plans) -- much cheaper than Read+Edit per tick. Ships source + prebuilt macOS arm64 binary at [bin/tp/](bin/tp/) |
 
 ### Git & PR
 
@@ -285,7 +283,6 @@ These skills describe how agents should think and work. They're loaded by refere
 | [skill-audit](skills/skill-audit/SKILL.md) | Use after collecting usage data for a few weeks to identify dead weight -- recommends which skills to keep, prune, or consolidate |
 | [promote](skills/promote/SKILL.md) | Use when checking which project skills should be available globally |
 | [disk-cleanup](skills/disk-cleanup/SKILL.md) | Use when the user asks about disk space or storage -- scans for large consumers, never deletes without approval |
-| [logo](skills/logo/SKILL.md) | Use when the user wants to create or generate a logo -- produces 6 SVG alternatives with a side-by-side comparison page |
 | [mcp-prune](skills/mcp-prune/SKILL.md) | Use when starting work in a project with many global MCP servers that waste context tokens |
 | [upload-notion-image](skills/upload-notion-image/SKILL.md) | Use when embedding images in Notion pages -- uploads natively via the Notion API file upload flow |
 | [set-topic](skills/set-topic/SKILL.md) | Set the session topic displayed in the [status line](bin/statusline.sh) |
@@ -294,6 +291,10 @@ These skills describe how agents should think and work. They're loaded by refere
 | [steal](skills/steal/SKILL.md) | Use when the user wants to find reusable skills, patterns, or techniques from other repos -- scans tracked GitHub repos or evaluates new ones |
 | [list-skills](skills/list-skills/SKILL.md) | Use when you need a reminder of your toolkit -- quick reference of all available skills |
 | [migrate-to-openspec](skills/migrate-to-openspec/SKILL.md) | Convert a legacy `.specs` project to OpenSpec layout with verifiable fidelity -- one-time per project |
+| [eli5](skills/eli5/SKILL.md) | Restate the prior response in plain language and orient the user around the decision they need to make |
+| [doitright](skills/doitright/SKILL.md) | Pick the long-term-correct option from a multi-option recommendation -- "go with the proper fix unless there's a real downside beyond effort" |
+| [trust-action](skills/trust-action/SKILL.md) | Eliminate a specific permission prompt by adding a targeted allowlist rule -- paste a permission prompt, choose global or project scope |
+| [trust-skills](skills/trust-skills/SKILL.md) | Bulk-trust all skills in the current project's `.claude/skills/` directory to stop per-skill permission prompts |
 
 ---
 

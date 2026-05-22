@@ -1,6 +1,7 @@
 ---
 name: fixit
 description: Use when the user reports a bug or issue that can be fixed without blocking their current work — backgrounds an agent in a worktree to fix and merge back without breaking stride
+tags: [workflow]
 ---
 
 # Fixit
@@ -30,16 +31,7 @@ You are a dispatcher, not a debugger. Do NOT read source code or investigate.
 
 - Parse the user's description
 - Run up to 3 `Glob`/`Grep` calls (paths only, no content reads) to locate likely files
-- If the description is ambiguous about *what* is broken, echo back a 1-line interpretation and proceed — don't block on clarification
-- If the description prescribes a *workflow* (e.g., "via a PR", "via a proper OpenSpec change", "with `--no-verify`", "as drift cleanup", "as a hotfix") and you would otherwise dispatch differently, stop and surface the mismatch to the user before dispatching. Do not silently substitute a different workflow.
-
-#### Pattern-cleanup pre-flight
-
-If the description contains pattern-cleanup keywords ("remove all", "clean up", "drop references to", "delete all", "legacy", "dead", "deprecated"), exceed the 3-call budget once: run a single comprehensive `Grep` for the pattern across the relevant scope (typically the named directory tree). Then surface the full extent to the user before dispatching:
-
-> "You named A; the same pattern exists in B and C. Scope to all three or just A?"
-
-Wait for the user's answer before creating the worktree. Pattern cleanup is the one class of bug where missing the full extent guarantees rework.
+- If the description is ambiguous, echo back a 1-line interpretation and proceed — don't block on clarification
 
 ### 2. Create Worktree
 
@@ -61,8 +53,6 @@ git branch -D "$SLUG" 2>/dev/null
 
 ### 3. Dispatch Background Agent
 
-Before dispatching, do a one-line self-review: "Did I add anything to the agent prompt that the user didn't ask for, or omit anything they did ask for?" If yes, set a `merge_gate=divergence` flag for the completion handler (see Merge gate, below).
-
 Use the `Agent` tool with `run_in_background: true` and `mode: "bypassPermissions"`:
 
 ```
@@ -72,11 +62,6 @@ Use the `Agent` tool with `run_in_background: true` and `mode: "bypassPermission
 - Main repo root: <$MAIN_REPO>
 - Working directory: <worktree path>
 - Branch: <SLUG>
-
-### User's Exact Ask
-<verbatim copy of $ARGUMENTS — the user's command-line instruction, unedited>
-
-This section is the highest-priority guidance. If anything below conflicts with it (including the Spec-aware project branching), defer to this section.
 
 ### Bug Description
 <user's description>
@@ -168,28 +153,7 @@ Before merging, run both reviews from agent-driven-development (see prompt templ
 
 Spec compliance must pass before code quality review begins.
 
-#### Followup capture
-
-Every "out of scope" / "concerns" / "follow-up" item in the agent's report must resolve into one of three outcomes — they cannot be silently dropped:
-
-- **Extend scope** — re-dispatch the agent on the same branch with the additional work (after user approval), OR
-- **Capture as task** — call `TaskCreate` to track the followup, OR
-- **Explicit won't-fix** — the user reviews and acknowledges the item as out of scope.
-
-Surface the followups to the user as a short list and ask which outcome applies. If anything remains unresolved, set `merge_gate=concerns`.
-
-#### Merge gate
-
-Auto-merge is the default. Hold for one-line user confirmation when any of the following are true:
-
-- `merge_gate=divergence` was set in step 3 (dispatcher prompt diverged from user's literal ask)
-- Agent reported `DONE_WITH_CONCERNS`
-- `merge_gate=concerns` was set during followup capture (work queued or pending decision)
-- Project is OpenSpec (`test -d openspec`) and the fix touched files under `openspec/specs/**/*.md`
-
-When gating, print one summary: "Agent did X, flagged Y, diverged on Z. Merge / extend scope / discard?" and wait for the user's call.
-
-Once both reviews pass and the gate (if any) is cleared:
+Once both reviews pass:
 
 ```bash
 git checkout <original-branch>
@@ -240,7 +204,6 @@ Report to user:
 
 - **Never read source code in the main thread** — agents do that
 - **Never investigate root causes** — agents do that
-- **Defer to the user's literal workflow** — if their wording prescribes a process (e.g., "via a PR", "via an OpenSpec change", "with `--no-verify`", "as drift cleanup"), follow it. The list is examples, not exhaustive — any prescribed workflow wins over the dispatcher's judgment, including the drift-vs-gap classification embedded in the agent prompt. If the prescribed workflow doesn't make sense for the project, surface that to the user before dispatching.
-- **Dispatch and return immediately** — except when a workflow-instruction mismatch or pattern-cleanup scope check requires confirmation (see Triage), or when the merge gate triggers on completion.
+- **Never block the user** — dispatch and return immediately
 - **One bug, one agent, one worktree** — no queues, no sessions
-- **Triage search budget**: max 3 Glob/Grep calls plus the pattern-cleanup pre-flight grep when triggered, zero file reads
+- **Triage search budget**: max 3 Glob/Grep calls, zero file reads

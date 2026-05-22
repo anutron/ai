@@ -2,6 +2,7 @@
 name: software-best-practices
 description: Use after completing implementation to validate code quality — checks tests, linting, run scripts, error handling, executes code and iterates until success
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
+tags: [spec]
 ---
 
 # Software Best Practices Skill
