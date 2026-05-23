@@ -75,25 +75,21 @@ if jq -e --arg r "$RULE" '.permissions.deny // [] | index($r)' "$SETTINGS" >/dev
   exit 2
 fi
 
-TS=$(date +%s)
-BACKUP="${SETTINGS}.bak.${TS}"
-cp "$SETTINGS" "$BACKUP"
-
 TMP=$(mktemp)
 jq --arg r "$RULE" '.permissions.allow += [$r]' "$SETTINGS" > "$TMP"
 
 if ! jq empty "$TMP" >/dev/null 2>&1; then
-  echo "ERROR: invalid JSON after edit. Backup at $BACKUP" >&2
+  echo "ERROR: invalid JSON after edit (changes not applied)" >&2
   rm -f "$TMP"
   exit 1
 fi
+
+echo "Added: $RULE"
+echo "--- diff ---"
+diff "$SETTINGS" "$TMP" || true
 
 # Write through the symlink (cat redirection follows symlinks, unlike mv which
 # replaces them). This matters now that ~/.claude/settings.json is symlinked to
 # the versioned source in the repo.
 cat "$TMP" > "$SETTINGS"
 rm -f "$TMP"
-echo "Added: $RULE"
-echo "Backup: $BACKUP"
-echo "--- diff ---"
-diff "$BACKUP" "$SETTINGS" || true

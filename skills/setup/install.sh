@@ -104,17 +104,6 @@ already=0
 conflicts=0
 allowlist_added=0
 
-# Backup settings.json once if we'll be editing it
-BACKUP_DONE=false
-backup_settings() {
-  if ! $BACKUP_DONE; then
-    if [ -f "$SETTINGS" ]; then
-      cp "$SETTINGS" "${SETTINGS}.bak.$(date +%s)"
-    fi
-    BACKUP_DONE=true
-  fi
-}
-
 add_allowlist() {
   local rule="$1"
   if [ ! -f "$SETTINGS" ]; then
@@ -124,7 +113,6 @@ add_allowlist() {
   if jq -e --arg r "$rule" '.permissions.allow | index($r)' "$SETTINGS" >/dev/null 2>&1; then
     return
   fi
-  backup_settings
   local tmp
   tmp="$(mktemp)"
   jq --arg r "$rule" '.permissions.allow += [$r]' "$SETTINGS" > "$tmp"

@@ -97,9 +97,9 @@ The helper:
 
 - Reads the target settings file (creates a minimal one if it's a project settings path that doesn't exist yet)
 - Appends the rule to `permissions.allow` if missing
-- Validates the JSON
-- Writes a `.bak.<timestamp>` backup
+- Validates the new JSON before writing (settings.json is in git – `git diff` is the recovery path)
 - Prints a diff
+- Writes through the symlink
 
 Show the diff back to the user. Done.
 
@@ -135,4 +135,3 @@ End with a one-paragraph summary:
 - What rule (if any) was added
 - What was refused and why
 - Any CLAUDE.md hardening proposed
-- What backup file was written (path to `.bak.<timestamp>`)

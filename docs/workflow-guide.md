@@ -1,6 +1,6 @@
 # Workflow guide
 
-This is how the skills in this repo are meant to compose into a single development cycle. It assumes you have the toolkit installed – see the [README](../README.md) for setup. It does not assume CI, a production branch, or any particular team structure – those are conventions, addressed in their own sections at the end.
+This is how the skills in this repo are meant to compose into a single development cycle. It assumes you have the toolkit installed – see the [README](../README.md) for setup.
 
 ## The why
 
@@ -8,7 +8,7 @@ Without discipline, the easy answer for AI coding is: describe a thing, let Clau
 
 1. **The system drifts.** What you built last week disagrees with what you build today. Nothing tells you when.
 2. **Plans get fuzzier as features get bigger.** "Add a button" is one prompt. "Build a campaign tool" is fifty. Without a written-down agreement on what you're building, Claude makes assumptions you only discover after it's coded.
-3. **You can't review what you didn't write down.** Code review without a behavioral contract degrades to "looks fine I guess."
+3. **Code review becomes guesswork.** The purpose of a spec is to have a plain-English description of what you expect the code to do. Without one, you must infer intent from the code itself. If the code has a bug, you have nothing telling you what was intended – and "looks fine, I guess" is the best a reviewer can do.
 
 The workflow exists to put a written behavioral contract – a spec – at the start of every change, keep it accurate as code lands, and use it as the reference for every review.
 
@@ -24,7 +24,7 @@ The spec serves three jobs:
 
 ### OpenSpec
 
-The toolkit uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) as the spec system. OpenSpec is a convention plus a CLI:
+The toolkit uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) as the spec system. OpenSpec is a convention plus a command line tool (a "CLI"):
 
 - Base specs at `openspec/specs/<capability>/spec.md` are the source of truth.
 - In-flight work lives in `openspec/changes/<name>/` as a folder containing proposal, design, tasks, and delta specs.
@@ -36,120 +36,141 @@ Projects opt in by creating an `openspec/` directory. Skills check for it; witho
 
 ## The cycle
 
-The skills compose into a single rhythm. Most of them auto-invoke – you don't type them. You describe what you want, and the workflow takes over.
+The skills compose into a single rhythm. Most of them auto-invoke – you don't have to type them (though you can). You describe what you want, and the workflow takes over.
 
 ```
 idea → brainstorm → execute-plan → ralph-review → spec-audit → bugbash → ship
-                                       (auto)         (auto)
+                                       (auto)         (auto)    (optional)
 ```
 
-What each one does:
+What each step does, what it produces, and how it hands off to the next:
 
-### Greenfield only: /kickoff and /interview
+### Step 0 (optional): /kickoff for greenfield projects
 
-You only need these when starting from scratch – an empty folder, no project yet. Skip both if you're iterating on an existing project.
+Use only when starting from scratch – an empty folder, no project yet. Skip when iterating on an existing project.
 
-- **`/kickoff`** asks you a few questions about what you're building, picks a tech stack tier from the spectrum, and hands off to brainstorm. Optimized for the moment when you don't yet have a project to attach a spec to.
-- **`/interview`** is the engine kickoff uses to drag context out of you. Unlike everything else in this workflow, interview logs the full transcript to a file – you keep the verbatim discussion for future reference, plus a synthesized summary. Use it directly when you want a discovery conversation without committing to a project yet.
+Kickoff runs a 5-8 question discovery conversation (one at a time), picks a tech stack tier from the spectrum (defaulting to the lightest that fits), and writes a discovery doc at `specs/docs/<date>-<topic>/discovery.md`. It then invokes `/brainstorm` directly, passing the discovery doc as the input artifact.
 
-For everything else, skip straight to brainstorm.
+A separate skill, `/interview`, handles **standalone systematic reviews** of an existing system, feature, or domain. It builds an inventory, walks through items one at a time, and captures decisions as numbered artifacts. Unlike the rest of this workflow, interview logs the entire discussion to a file (`<topic>_review/discussion.log`) so the verbatim transcript survives across sessions. Use it when you want to audit, review, or evaluate something collaboratively – it's not part of the greenfield path.
 
-### /brainstorm: getting the idea to a written-down plan
+### Step 1: /brainstorm – idea to written-down plan
 
-When you describe something creative – adding a feature, changing behavior, building a new piece – `/brainstorm` triggers automatically. You don't type it. Its frontmatter declares "use before any creative work," and Claude picks it up.
+When you describe something creative – adding a feature, changing behavior, building a new piece – `/brainstorm` triggers automatically (its frontmatter declares "use before any creative work"). You don't have to type it (though you can).
 
-Brainstorm has one job: **turn a vague idea into a complete, written-down spec and plan.** It walks you through:
+Brainstorm's one job: **turn a vague idea into a complete, written-down change folder.** It walks you through assumption surfacing, scope sizing, clarifying questions, proposing 2-3 approaches with tradeoffs, and presenting the design section by section.
 
-- Surfacing constraints, edge cases, and decisions you haven't made yet
-- Writing the OpenSpec change folder (proposal, design, delta specs, tasks)
-- Reviewing the result with you, often via inline annotation
-- Asking permission to hand off to `/execute-plan`
+**Input:** your idea, plus any prior discovery doc.
 
-This is where most of the time should go. Skim the spec and the plan; engage deeply with the brainstorm itself. That's where misinterpretations get caught before any code is written.
+**Output:** a complete `openspec/changes/<name>/` folder:
 
-### The handoff: /clear before /execute-plan
+- `proposal.md` – why and what changes
+- `design.md` – architecture, decisions, alternatives, risks
+- `specs/<capability>/spec.md` – delta specs (ADDED / MODIFIED / REMOVED requirements with scenarios)
+- `tasks.md` – the implementation plan as a checklist (this is what `/execute-plan` consumes)
 
-Brainstorm ends by copying an `/execute-plan <change-name>` command to your clipboard. The recommended next step is `/clear` to wipe the conversation context, then paste the command in a fresh session.
+This is where most of your time should go. Skim the spec and the plan; engage deeply with the brainstorm itself. That's where misinterpretations get caught before any code is written.
 
-Why clear? Because brainstorm conversations often explore options that don't make the final cut. If you went deep on "blue button" before deciding on "red button," and then ask execute-plan to build it, it has both the plan and the rich blue-button discussion in context – and might drift. Clearing the context window leaves only the plan you agreed on.
+**Handoff to execute-plan.** At the end, brainstorm asks via AskUserQuestion:
 
-### /execute-plan: the implementation loop
+- **Copy to clipboard** (recommended) – copies `/execute-plan <name>` to your clipboard. You run `/clear` to wipe context, then paste in a fresh session.
+- **Execute in this session** – continues without clearing.
 
-`/execute-plan` reads the OpenSpec change folder and turns it into working code. It:
+Why clear? Because brainstorm conversations often explore options that don't make the final cut. If you went deep on option A before deciding on option B, and then ask execute-plan to build it, the context still contains all of option A's rationale – and execute-plan might drift toward it. Clearing leaves only the agreed plan.
 
-1. Parses `tasks.md` into a dependency graph.
+### Step 2: /execute-plan – the implementation loop
+
+`/execute-plan` reads the change folder and turns it into working code.
+
+**Input:** a change name (or it auto-detects from the active changes / current branch).
+
+**What it does:**
+
+1. Parses `tasks.md` into a stage-based dependency graph.
 2. Dispatches sub-agents in isolated worktrees to implement each stage.
-3. Writes the tests from the delta specs first – they should fail.
+3. Writes tests from the delta specs first – they should fail (the Prove-It Pattern).
 4. Implements code until tests pass.
 5. Runs a two-stage review per stage – spec compliance, then code quality.
 6. Merges each stage back, ticks `tasks.md` checkboxes.
-7. Archives the change via `openspec archive <name>`.
+7. Archives the change via `openspec archive <name>` – deltas merge into base specs.
 
-Execute-plan is autonomous once it starts. It doesn't ask you questions mid-flow. It runs until done.
+Execute-plan is autonomous once it starts. It does not ask you questions mid-flow.
 
-When it finishes, it asks whether to run the quality gates: `/ralph-review`, `/spec-audit`, both, or skip. The recommended answer is "both."
+**Output:** working code, passing tests, an archived change folder, and a set of commits with stage-prefixed messages.
 
-### /ralph-review: the gap finder
+**Handoff to quality gates.** When it finishes, execute-plan asks via AskUserQuestion: "Run quality checks?"
 
-Ralph review compares your implementation against the merged spec deltas. It uses three sub-agents that each do a fresh-eyes review independently, then the main agent reconciles their findings.
+- **Both** (recommended) – runs `/ralph-review` and `/spec-audit` in parallel.
+- **Ralph-review only**
+- **Spec-audit only**
+- **Done** – skip the gates.
 
-What it does autonomously: when it finds a problem where the spec is clear about the intended behavior and the code is wrong, it fixes it. Then it re-reviews. Loops until clean.
+### Step 3: /ralph-review – the gap finder (auto-prompted)
 
-What it brings back to you: a short list of questions where the spec wasn't clear enough – "the spec says X but the code does Y; which one is right?" These usually mean the plan needed more detail. You answer the questions; it applies the fixes.
+Ralph compares your implementation against the active change's spec deltas. Each iteration spawns one fresh review sub-agent with the full diff, the deltas, and the changed files in their entirety. The agent classifies every finding into AUTO-FIX, QUESTION, SPEC-DRIFT, or SKIP. The main thread triages, applies the AUTO-FIX items, commits, and loops up to three times.
+
+What it does autonomously: when a finding is clearly an AUTO-FIX – the spec is unambiguous about the intended behavior and the code is wrong – ralph fixes it and re-reviews.
+
+What it brings back to you: QUESTION items where the spec wasn't clear enough ("the spec says X but the code does Y; which is right?"), plus SPEC-DRIFT items where new behavior landed without a delta update. You resolve each one; ralph dispatches background fix agents (the same pattern as `/fixit`) to apply the chosen direction.
+
+**Output:** a report at `.claude/reviews/<date>/ralph-review-report.md`, plus commits prefixed `ralph-review loop {N}: ...`.
 
 There is, in practice, no review where ralph finds nothing. If you're not running it, you're shipping drift.
 
-### /spec-audit: the alignment check
+### Step 4: /spec-audit – the coverage check (auto-prompted)
 
-Spec audit asks a different question than ralph: *does the code agree with the spec*, where ralph asks *does the code do what the spec described*.
+Spec audit asks a different question than ralph: *does the project's code agree with the project's specs across the whole codebase?* It inventories code files and base specs, maps them many-to-many (a single capability often spans multiple files), then dispatches per-module agents that classify every behavioral branch as:
 
-Two common findings:
+- **Covered** – the spec describes this behavior.
+- **Uncovered (behavioral)** – the branch produces a distinct user-visible behavior that no requirement describes. This is a gap.
+- **Uncovered (implementation)** – internal control flow (retries, defensive checks). No spec needed.
+- **Contradicts** – the code does what the spec says it shouldn't, or vice versa.
 
-- **Implementation drift:** the spec said do A and C; the code does A, B, C because B was needed to make A and C work. The audit asks: is B's behavior worth specifying, or was it an implementation detail? Usually the spec gets updated.
-- **Conflicting requirements:** the spec said A, B, C; implementation found B and C can't coexist. The audit surfaces the conflict and asks you to resolve.
+It also surfaces *unimplemented spec promises* – requirements written but not built.
+
+**Output:** `.workflow/audits/<date>/` with `index.md` (dashboard), `gaps.md` (sorted findings), per-module reports, and structured findings JSON. After the first audit, incremental mode is the default – only modules with changes since the last audit get re-analyzed.
+
+**Handoff.** After the report, spec audit asks via AskUserQuestion whether to stop, address gaps individually (transitioning to `/spec-recommender`), address them in logical groups, or commit and move on.
 
 Spec audit almost always finds something. It's looking at a different axis than ralph.
 
-### /fixit: one-shot quick fixes
+### Step 5 (optional): /bugbash – QA mode
 
-When a change is too small to brainstorm – "make the button red instead of blue" – `/fixit` is the shortcut. It:
+Bugbash turns Claude into a continuous fix queue. You type `/bugbash` and start clicking around the running app. Every issue you mention – "this button should be on the right," "this text is wrong" – Claude takes as a bug ticket, dispatches a fix agent in an isolated worktree, and moves on. You keep reporting; fixes happen in parallel.
 
-1. Creates a worktree.
-2. Writes the spec change.
-3. Updates the test.
-4. Changes the code.
-5. Reviews its own work.
-6. Merges back to main.
-7. Reports a confidence score for the change it made.
+The board lives in `.bug-bash/` as folders – `todo/` → `investigating/` → `in-progress/` → `merged/` → `verified/`. Status transitions are file moves. Independent bugs (no file overlap) run in parallel; same-file conflicts serialize automatically.
 
-If confidence is high, fixit is silent – the change is done and merged. If confidence is intermediate, the main thread surfaces the change for you to approve. If confidence is low – it can't tell which button you meant – it doesn't ship anything and asks for clarification.
+Subcommands:
 
-Fixit is for changes where there is no design decision to make. Use brainstorm for anything with a "we could go either way" element.
-
-### /bugbash: QA mode
-
-Bugbash turns Claude into a continuous fixit queue. You type `/bugbash` and start clicking around the running app. Every issue you mention – "this button should be on the right," "this text is wrong" – Claude takes as a bugbash ticket, dispatches a fixit job in a worktree, and moves on.
-
-The mode tracks tickets in a `.bugbash/` folder structured like a kanban board – to-do → investigating → in-progress → merged. At the end:
-
-- `/bugbash status` – count of resolved vs unresolved tickets.
-- `/bugbash report` – text summary of the run.
-- `/bugbash review` – opens Plannotator with the list of fixes for regression testing. Annotate each one as "good" or "not yet." Not-yet items respawn as fixit jobs.
+- `/bugbash status` – dashboard of bug counts by status.
+- `/bugbash done` – wraps up the session and cleans up worktrees.
+- `/bugbash report` – generates `.bug-bash/report.md` and opens it in Plannotator for acceptance testing. Annotate any fix that didn't actually work; unannotated bugs move to `verified/`, annotated ones become new bug tickets that re-enter the queue.
 
 Bugbash pairs naturally with: ask Claude to generate a test plan for all unreleased changes, then walk that plan in the running app with bugbash open. Anything broken becomes a ticket. Anything that works gets a green annotation.
+
+### Side-quest: /fixit – one-shot quick fixes
+
+When a change is too small to brainstorm – "make the button red instead of blue" – `/fixit` is the shortcut.
+
+**Input:** a natural-language bug description.
+
+The main thread triages with a few path searches (no source-code reads), creates a worktree, and dispatches a background agent. In a spec-aware project, the agent first classifies the issue as a *code drift fix* (the spec is correct; the code diverged) or a *spec gap fix* (the spec doesn't cover the case), then implements per the matching path. Both paths include writing or updating a test.
+
+The agent reports back with one of three statuses: `DONE`, `DONE_WITH_CONCERNS`, or `BLOCKED`. On `DONE`, the main thread runs two stages of review (spec, then code quality) before merging back. On conflict, the worktree is preserved for you to resolve. On failure, fixit reports what it tried.
+
+Use fixit for changes where there is no design decision to make. Use brainstorm for anything with a "we could go either way" element. Fixit also runs under the hood inside `/ralph-review` and `/bugbash` to apply individual sub-fixes.
 
 ## The full rhythm
 
 Putting it together:
 
-1. You describe an idea, or run `/kickoff` if greenfield.
+1. You describe an idea (or run `/kickoff` if greenfield).
 2. Brainstorm walks you to a written-down change folder. You review.
 3. `/clear`, paste the execute-plan command in a fresh session.
 4. Execute-plan implements. When done, accept the quality gates.
 5. Ralph review fixes what it can, asks about what it can't. You resolve its questions.
-6. Spec audit checks alignment. You confirm or correct.
-7. Spin up locally. Run bugbash. Walk the change in the app. Anything broken becomes a fixit ticket.
-8. When bugbash is clean, ship.
+6. Spec audit checks coverage. You confirm or correct.
+7. (Optional) Spin up the app locally. Run bugbash. Walk the change in the app. Anything broken becomes a fix ticket.
+8. When the quality gates are clean (and bugbash if you ran it), ship.
 
 This isn't ceremony – every step earns its keep by catching something the previous step missed. Practical heuristic: run the quality gates 90% of the time. The 10% you can skip are tiny changes – a copy edit, a config tweak – where the gates would be overkill.
 
@@ -157,19 +178,19 @@ This isn't ceremony – every step earns its keep by catching something the prev
 
 The rhythm above works on a single repo with you as the only contributor. Two extra layers come into play when there's more structure.
 
-### If you have CI
+### If you have continuous integration (CI)
 
-When you push a branch and CI runs, you'll occasionally get failures. Treat them like another quality gate – the `/pr` skill opens the PR and watches CI in a loop, fixing failures and re-pushing until green. You don't have to babysit it.
+When you push a branch and CI runs, you'll occasionally get failures. The `/pr` skill opens a PR (or uses an existing one) and watches CI in a loop, fixing failures and re-pushing until green. It also addresses unresolved review comments – including comments from any review tool you have configured – before reporting back.
 
 ```
 /pr
 ```
 
-Then walk away. CI fails → it reads the failure, makes a fix, pushes, waits. It also watches for review-tool feedback such as CodeRabbit and addresses comments as they arrive. When it exits, the PR is mergeable.
+Then walk away. CI fails → it reads the failure, makes a fix, pushes, polls again with exponential backoff. When `/pr` exits, the PR is mergeable.
 
-### If you have a prod branch
+### If you have a production branch
 
-The convention worth adopting if you don't already: `main` holds shipped-but-not-released code, `production` holds what's actually running. The two diverge by N commits at any time.
+The convention worth adopting: `main` holds shipped-but-not-released code, `production` holds what's actually running. The two diverge by N commits at any time.
 
 Why: rollback. When something breaks in production, you want a single commit or tag to revert to. Without a prod branch, you're guessing which of last week's main commits to roll back.
 
@@ -189,17 +210,17 @@ If you're solo on a repo, you may also want a personal staging branch – `<your
 | Skill | When |
 |-------|------|
 | `/kickoff` | Greenfield, empty project, no idea yet committed to a stack |
-| `/interview` | Discovery conversations where you want a transcript |
-| `/brainstorm` | Auto-triggers on any creative work; turns ideas into change folders |
-| `/execute-plan` | Approved brainstorm → working code, autonomously |
-| `/ralph-review` | Auto-prompted post-implementation; finds gaps against the spec |
-| `/spec-audit` | Auto-prompted post-implementation; finds drift between code and spec |
+| `/interview` | Standalone systematic review of an existing system, feature, or domain |
+| `/brainstorm` | Auto-triggers on creative work; turns ideas into OpenSpec change folders |
+| `/execute-plan` | Approved change folder → working code, autonomously |
+| `/ralph-review` | Auto-prompted post-implementation; finds gaps against the active change's deltas |
+| `/spec-audit` | Auto-prompted post-implementation; coverage audit across the whole project |
 | `/fixit` | Tiny one-shot changes with no design decision to make |
 | `/bugbash` | QA mode while clicking through a running app |
 | `/pr` | Opens PR, watches CI, fixes failures until mergeable |
 
 ## A note on Plannotator
 
-Several steps above – brainstorm review, spec review, bugbash review – work best with [Plannotator](https://github.com/anutron/plannotator), a browser-based inline annotation tool. When a skill opens Plannotator, you annotate the document with comments or approvals; Claude reads them back and acts on them.
+Several steps above – brainstorm review, spec review, bugbash report – work best with [Plannotator](https://github.com/anutron/plannotator), a browser-based inline annotation tool. When a skill opens Plannotator, you annotate the document with comments or approvals; Claude reads them back and acts on them.
 
-If you don't have Plannotator installed, the workflows fall back to terminal-based review – Claude shows you the doc, you respond in chat. The annotation experience is more precise, but the workflow doesn't require it.
+If you don't have Plannotator installed, the workflows fall back to in-chat review – Claude shows you the doc, you respond in the conversation. The annotation experience is more precise, but the workflow doesn't require it.
