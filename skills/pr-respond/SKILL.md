@@ -1,6 +1,7 @@
 ---
 name: pr-respond
 description: Read PR review feedback, triage each comment (adopt/reject with reasoning), optionally apply changes and commit. Writes artifacts to ~/.claude/pr-responses/. Use when a PR has received review comments that need to be addressed.
+tags: [pr]
 ---
 
 # PR Respond

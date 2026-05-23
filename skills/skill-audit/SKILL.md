@@ -1,6 +1,7 @@
 ---
 name: skill-audit
 description: Analyze skill usage logs and recommend which skills to keep, prune, or consolidate. Use after collecting usage data for a few weeks to identify dead weight.
+tags: [personal]
 ---
 
 ## Context

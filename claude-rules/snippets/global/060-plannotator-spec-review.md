@@ -1,3 +1,7 @@
+---
+tags: [plannotator]
+audience: [aaron]
+---
 ## Spec Review via Plannotator
 
 **When `/brainstorm` is NOT driving** (e.g., standalone spec edits or spec files written outside the brainstorming flow), use Plannotator for spec review:

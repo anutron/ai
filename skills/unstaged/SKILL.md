@@ -1,6 +1,7 @@
 ---
 name: unstaged
 description: Use when the user wants to see what's changed or plan commits — shows uncommitted/unstaged changes grouped by logical commit themes
+tags: [quality]
 ---
 
 # Unstaged Changes Overview

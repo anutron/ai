@@ -1,6 +1,7 @@
 ---
 name: steal
 description: Use when the user wants to find reusable skills, patterns, or techniques from other repos — scans tracked GitHub repos or evaluates new ones
+tags: [personal]
 ---
 
 # Steal

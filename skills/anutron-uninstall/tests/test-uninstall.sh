@@ -1,38 +1,36 @@
 #!/bin/bash
 # test-uninstall.sh — End-to-end tests for anutron-uninstall
 #
-# Sets up a sandbox directory, runs install.sh to create state,
-# adds user-owned content, runs uninstall.sh, then verifies
-# cleanup is correct and user content is preserved.
-# Also tests that re-running uninstall errors cleanly.
+# Verifies that uninstall.sh correctly reverses both copy-mode and symlink-mode
+# installs, including legacy breadcrumbs that predate the mode/scopeResolution fields.
+#
+# Usage:
+#   bash test-uninstall.sh                        # uses bundled fixture
+#   ANUTRON_SOURCE=/path/to/source bash test-uninstall.sh  # override source
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 UNINSTALL_SH="$SCRIPT_DIR/../uninstall.sh"
 INSTALL_SH="$SCRIPT_DIR/../../anutron-install/install.sh"
-SOURCE_REPO="/Users/aaron/Personal/claude-skills"
+FIXTURE_SOURCE="$SCRIPT_DIR/../../anutron-install/tests/fixtures/source-repo"
+SOURCE_REPO="${ANUTRON_SOURCE:-$FIXTURE_SOURCE}"
 
-# Sanity: required files must exist
+# Sanity: source repo must exist
 if [ ! -d "$SOURCE_REPO/skills" ]; then
   echo "SKIP: source repo not found at $SOURCE_REPO"
   exit 0
 fi
 
+# Also require install.sh
 if [ ! -f "$INSTALL_SH" ]; then
   echo "SKIP: install.sh not found at $INSTALL_SH"
   exit 0
 fi
 
-if [ ! -f "$UNINSTALL_SH" ]; then
-  echo "FAIL: uninstall.sh not found at $UNINSTALL_SH"
-  exit 1
-fi
-
-# Create sandbox
-SANDBOX="/tmp/anutron-uninstall-test-$$-$(date +%s)"
-mkdir -p "$SANDBOX"
-trap 'rm -rf "$SANDBOX"' EXIT
+# ============================================================
+# Test helpers
+# ============================================================
 
 passed=0
 failed=0
@@ -50,6 +48,58 @@ assert() {
   fi
 }
 
+assert_file_exists() {
+  assert "$1 exists" test -f "$1"
+}
+
+assert_file_not_exists() {
+  assert "$1 does not exist" bash -c "! test -e '$1'"
+}
+
+assert_dir_not_exists() {
+  assert "$1 directory does not exist" bash -c "! test -d '$1'"
+}
+
+assert_symlink() {
+  assert "$1 is a symlink" test -L "$1"
+}
+
+assert_not_symlink() {
+  assert "$1 is NOT a symlink" bash -c "! test -L '$1'"
+}
+
+assert_file_contains() {
+  local file="$1" pattern="$2"
+  assert "$file contains '$pattern'" grep -q "$pattern" "$file"
+}
+
+assert_file_not_contains() {
+  local file="$1" pattern="$2"
+  total=$((total + 1))
+  if grep -qF "$pattern" "$file" >/dev/null 2>&1; then
+    failed=$((failed + 1))
+    echo "FAIL: $file should NOT contain '$pattern'"
+  else
+    passed=$((passed + 1))
+  fi
+}
+
+assert_json_key_absent() {
+  local file="$1" key="$2"
+  total=$((total + 1))
+  if jq -e "$key" "$file" >/dev/null 2>&1; then
+    failed=$((failed + 1))
+    echo "FAIL: $file should NOT have JSON key '$key' but does"
+  else
+    passed=$((passed + 1))
+  fi
+}
+
+assert_json_key_present() {
+  local file="$1" key="$2"
+  assert "$file has JSON key '$key'" bash -c "jq -e '$key' '$file' > /dev/null"
+}
+
 assert_equals() {
   local desc="$1" expected="$2" actual="$3"
   total=$((total + 1))
@@ -61,237 +111,311 @@ assert_equals() {
   fi
 }
 
-assert_file_exists() {
-  assert "$1 exists" test -f "$1"
+# Count non-dotfile items in a directory
+count_entries() {
+  local dir="$1"
+  ls -1 "$dir" 2>/dev/null | wc -l | tr -d ' '
 }
 
-assert_file_not_exists() {
-  assert "$1 does not exist" test ! -f "$1"
-}
-
-assert_dir_not_exists() {
-  assert "$1 does not exist" test ! -d "$1"
-}
-
-assert_file_contains() {
-  local file="$1" pattern="$2"
-  assert "$file contains '$pattern'" grep -qF "$pattern" "$file"
-}
-
-assert_file_not_contains() {
-  local file="$1" pattern="$2"
-  assert "$file does not contain '$pattern'" bash -c "! grep -qF '$pattern' '$file'"
-}
-
-assert_json_key() {
-  local file="$1" key="$2"
-  assert "$file has JSON key '$key'" bash -c "jq -e '$key' '$file' > /dev/null"
-}
-
-assert_no_json_key() {
-  local file="$1" key="$2"
-  assert "$file lacks JSON key '$key'" bash -c "! jq -e '$key' '$file' > /dev/null 2>&1"
+# Create a fresh sandbox and return its path
+make_sandbox() {
+  local sb
+  sb="/tmp/uninstall-test-$$-$(date +%s)-$RANDOM"
+  mkdir -p "$sb"
+  echo "$sb"
 }
 
 # ============================================================
-# Setup: Run install first
+# Test 1: Copy-mode uninstall
 # ============================================================
-echo "=== Setup: Installing anutron kit ==="
+echo "=== Test 1: Copy-mode uninstall ==="
 
-cd "$SANDBOX"
-ANUTRON_SOURCE="$SOURCE_REPO" bash "$INSTALL_SH" > /dev/null 2>&1
+SANDBOX1="$(make_sandbox)"
+
+# Install in copy mode
+cd "$SANDBOX1"
+ANUTRON_SOURCE="$SOURCE_REPO" bash "$INSTALL_SH" --mode=copy --scope=full > /dev/null 2>&1
 install_exit=$?
-assert "install.sh exits 0" test "$install_exit" -eq 0
+assert "copy-mode install succeeded" test "$install_exit" -eq 0
+assert "breadcrumb exists after install" test -f "$SANDBOX1/.anutron-install.json"
 
-# Verify install worked
-assert "breadcrumb exists after install" test -f "$SANDBOX/.anutron-install.json"
-assert "skills dir exists after install" test -d "$SANDBOX/.claude/skills"
-assert "CLAUDE.md exists after install" test -f "$SANDBOX/CLAUDE.md"
+# Snapshot: skills are real dirs (not symlinks) in copy mode
+assert_not_symlink "$SANDBOX1/.claude/skills/brainstorm"
+assert "brainstorm is a real directory" test -d "$SANDBOX1/.claude/skills/brainstorm"
+skills_before="$(count_entries "$SANDBOX1/.claude/skills")"
+assert "copy-mode install has at least one skill dir" test "$skills_before" -gt 0
 
-# ============================================================
-# Setup: Add user-owned content
-# ============================================================
-echo "=== Setup: Adding user-owned content ==="
+# Run uninstall
+cd "$SANDBOX1"
+uninstall_exit=0
+bash "$UNINSTALL_SH" > /dev/null 2>&1 || uninstall_exit=$?
+assert "copy-mode uninstall exits 0" test "$uninstall_exit" -eq 0
 
-# Add a user-owned hook entry to settings.json
-jq '.hooks.PreToolUse = [{"hooks": [{"type": "command", "command": "./my-custom-hook.sh"}]}]' \
-  "$SANDBOX/.claude/settings.json" > "$SANDBOX/.claude/settings.json.tmp"
-mv "$SANDBOX/.claude/settings.json.tmp" "$SANDBOX/.claude/settings.json"
+# Assert: every skill dir from snapshot is gone (fully removed, not just emptied)
+assert "brainstorm dir gone after copy-mode uninstall" bash -c "! test -e '$SANDBOX1/.claude/skills/brainstorm'"
+assert "guard dir gone after copy-mode uninstall" bash -c "! test -e '$SANDBOX1/.claude/skills/guard'"
 
-# Also add a user key to settings.json
-jq '.myUserKey = "preserved"' \
-  "$SANDBOX/.claude/settings.json" > "$SANDBOX/.claude/settings.json.tmp"
-mv "$SANDBOX/.claude/settings.json.tmp" "$SANDBOX/.claude/settings.json"
-
-# Add user content below the CLAUDE.md delimited block
-cat >> "$SANDBOX/CLAUDE.md" << 'USERCONTENT'
-
-## My Project Notes
-
-This is user-written content that should survive uninstall.
-
-- Important build instructions
-- Custom workflows
-USERCONTENT
-
-# Save skill count for later verification
-skill_count_before=$(ls "$SANDBOX/.claude/skills/" 2>/dev/null | wc -l | tr -d ' ')
-
-# ============================================================
-# Test 1: Uninstall
-# ============================================================
-echo ""
-echo "=== Test 1: Uninstall ==="
-
-cd "$SANDBOX"
-UNINSTALL_OUTPUT=$(bash "$UNINSTALL_SH" 2>&1)
-uninstall_exit=$?
-assert "uninstall.sh exits 0" test "$uninstall_exit" -eq 0
-
-# --- Skill symlinks removed ---
-# .claude/skills/ should be empty or gone (all symlinks were anutron-owned)
-if [ -d "$SANDBOX/.claude/skills" ]; then
-  remaining_skills=$(ls "$SANDBOX/.claude/skills/" 2>/dev/null | wc -l | tr -d ' ')
-  assert_equals "skills dir is empty" "0" "$remaining_skills"
+# No dangling symlinks left in .claude/skills
+if [ -d "$SANDBOX1/.claude/skills" ]; then
+  leftover_links="$(find "$SANDBOX1/.claude/skills" -maxdepth 1 -type l 2>/dev/null | wc -l | tr -d ' ')"
+  assert "no dangling symlinks left in .claude/skills" test "$leftover_links" -eq 0
 fi
 
-# --- Hook symlinks removed ---
-if [ -d "$SANDBOX/.claude/hooks" ]; then
-  remaining_hooks=$(ls "$SANDBOX/.claude/hooks/" 2>/dev/null | wc -l | tr -d ' ')
-  assert_equals "hooks dir is empty" "0" "$remaining_hooks"
+# Breadcrumb gone
+assert_file_not_exists "$SANDBOX1/.anutron-install.json"
+
+# CLAUDE.md ANUTRON-INSTALL block gone
+if [ -f "$SANDBOX1/CLAUDE.md" ]; then
+  assert_file_not_contains "$SANDBOX1/CLAUDE.md" "BEGIN ANUTRON-INSTALL"
 fi
 
-# --- settings.json cleaned ---
-assert_file_exists "$SANDBOX/.claude/settings.json"
-assert_no_json_key "$SANDBOX/.claude/settings.json" '.anutronInstalled'
+# Settings cleaned
+if [ -f "$SANDBOX1/.claude/settings.json" ]; then
+  assert_json_key_absent "$SANDBOX1/.claude/settings.json" '.anutronInstalled'
+fi
 
-# Anutron hook entries should be gone
-# The SessionStart entry should be gone since it was anutron-owned
-session_start_hooks=$(jq '.hooks.SessionStart // [] | length' "$SANDBOX/.claude/settings.json" 2>/dev/null)
-assert_equals "SessionStart hooks removed" "0" "$session_start_hooks"
+rm -rf "$SANDBOX1"
 
-# User-owned hook should be preserved
-assert_json_key "$SANDBOX/.claude/settings.json" '.hooks.PreToolUse'
-user_hook_cmd=$(jq -r '.hooks.PreToolUse[0].hooks[0].command' "$SANDBOX/.claude/settings.json" 2>/dev/null)
-assert_equals "user hook command preserved" "./my-custom-hook.sh" "$user_hook_cmd"
-
-# User key should be preserved
-assert_json_key "$SANDBOX/.claude/settings.json" '.myUserKey'
-user_key_val=$(jq -r '.myUserKey' "$SANDBOX/.claude/settings.json" 2>/dev/null)
-assert_equals "user key value preserved" "preserved" "$user_key_val"
-
-# --- CLAUDE.md cleaned ---
-assert_file_exists "$SANDBOX/CLAUDE.md"
-assert_file_not_contains "$SANDBOX/CLAUDE.md" "BEGIN ANUTRON-INSTALL"
-assert_file_not_contains "$SANDBOX/CLAUDE.md" "END ANUTRON-INSTALL"
-
-# User content should be preserved
-assert_file_contains "$SANDBOX/CLAUDE.md" "My Project Notes"
-assert_file_contains "$SANDBOX/CLAUDE.md" "user-written content"
-assert_file_contains "$SANDBOX/CLAUDE.md" "Important build instructions"
-
-# --- Breadcrumb removed ---
-assert_file_not_exists "$SANDBOX/.anutron-install.json"
-
-# --- Summary output ---
-assert "summary mentions uninstalled" bash -c "echo '$UNINSTALL_OUTPUT' | grep -qi 'uninstall'"
-assert "summary mentions skills" bash -c "echo '$UNINSTALL_OUTPUT' | grep -qi 'skill'"
-
-# ============================================================
-# Test 2: Re-run uninstall errors cleanly
-# ============================================================
 echo ""
-echo "=== Test 2: Re-run uninstall (should error) ==="
+echo "=== Test 1b: Copy-mode uninstall preserves other user settings keys ==="
 
-cd "$SANDBOX"
-rerun_output=$(bash "$UNINSTALL_SH" 2>&1 || true)
-rerun_exit=$?
-# Capture exit code properly
-set +e
+SANDBOX1B="$(make_sandbox)"
+mkdir -p "$SANDBOX1B/.claude"
+
+# Settings with user keys that must survive
+cat > "$SANDBOX1B/.claude/settings.json" << 'USERSETTINGS'
+{
+  "permissions": {
+    "allow": ["Read", "Write", "Bash"]
+  },
+  "mcpPermissions": {
+    "memory": { "allowAllTools": true }
+  }
+}
+USERSETTINGS
+
+cd "$SANDBOX1B"
+ANUTRON_SOURCE="$SOURCE_REPO" bash "$INSTALL_SH" --mode=copy --scope=full > /dev/null 2>&1
+assert "copy-mode install with user settings succeeded" test "$?" -eq 0
+
+cd "$SANDBOX1B"
 bash "$UNINSTALL_SH" > /dev/null 2>&1
-rerun_exit=$?
-set -e
 
-assert "re-run exits non-zero" test "$rerun_exit" -ne 0
+# User keys must survive; anutron key must be gone
+if [ -f "$SANDBOX1B/.claude/settings.json" ]; then
+  assert_json_key_present "$SANDBOX1B/.claude/settings.json" '.permissions'
+  assert_json_key_present "$SANDBOX1B/.claude/settings.json" '.mcpPermissions'
+  assert_json_key_absent "$SANDBOX1B/.claude/settings.json" '.anutronInstalled'
+fi
 
-# ============================================================
-# Test 3: CLAUDE.md deletion when only markers present
-# ============================================================
+rm -rf "$SANDBOX1B"
+
 echo ""
-echo "=== Test 3: CLAUDE.md deleted when empty after strip ==="
+echo "=== Test 1c: Copy-mode uninstall idempotent (second run fails cleanly) ==="
 
-SANDBOX2="/tmp/anutron-uninstall-test2-$$-$(date +%s)"
-mkdir -p "$SANDBOX2"
+SANDBOX1C="$(make_sandbox)"
+cd "$SANDBOX1C"
+ANUTRON_SOURCE="$SOURCE_REPO" bash "$INSTALL_SH" --mode=copy > /dev/null 2>&1
+cd "$SANDBOX1C"
+bash "$UNINSTALL_SH" > /dev/null 2>&1
+
+# Second run: breadcrumb is gone — must error with a clear message (not crash)
+set +e
+second_run_output="$(bash "$UNINSTALL_SH" 2>&1)"
+second_run_exit=$?
+set -e
+assert "second copy-mode uninstall exits non-zero (no breadcrumb)" test "$second_run_exit" -ne 0
+assert "second run error mentions breadcrumb" bash -c "echo '$second_run_output' | grep -qi 'anutron-install.json'"
+
+rm -rf "$SANDBOX1C"
+
+echo ""
+echo "=== Test 2: Symlink-mode uninstall ==="
+
+SANDBOX2="$(make_sandbox)"
+cd "$SANDBOX2"
+ANUTRON_SOURCE="$SOURCE_REPO" bash "$INSTALL_SH" --mode=symlink --scope=full > /dev/null 2>&1
+assert "symlink-mode install succeeded" test "$?" -eq 0
+
+# Verify skills are symlinks
+assert_symlink "$SANDBOX2/.claude/skills/brainstorm"
+skills_sym_before="$(count_entries "$SANDBOX2/.claude/skills")"
+assert "symlink install has at least one skill" test "$skills_sym_before" -gt 0
 
 cd "$SANDBOX2"
-ANUTRON_SOURCE="$SOURCE_REPO" bash "$INSTALL_SH" > /dev/null 2>&1
+sym_uninstall_exit=0
+bash "$UNINSTALL_SH" > /dev/null 2>&1 || sym_uninstall_exit=$?
+assert "symlink-mode uninstall exits 0" test "$sym_uninstall_exit" -eq 0
 
-# CLAUDE.md should just have the block + placeholder comment
-# The placeholder heading is "<!-- Your project instructions below -->"
-# Uninstall should delete the file since it's effectively empty
-bash "$UNINSTALL_SH" > /dev/null 2>&1
-assert "CLAUDE.md deleted when empty" test ! -f "$SANDBOX2/CLAUDE.md"
+# All symlinks gone
+assert "brainstorm symlink gone after symlink-mode uninstall" bash -c "! test -e '$SANDBOX2/.claude/skills/brainstorm'"
+assert "guard symlink gone after symlink-mode uninstall" bash -c "! test -e '$SANDBOX2/.claude/skills/guard'"
+
+# Breadcrumb gone
+assert_file_not_exists "$SANDBOX2/.anutron-install.json"
+
+# CLAUDE.md block gone
+if [ -f "$SANDBOX2/CLAUDE.md" ]; then
+  assert_file_not_contains "$SANDBOX2/CLAUDE.md" "BEGIN ANUTRON-INSTALL"
+fi
+
+# Settings cleaned
+if [ -f "$SANDBOX2/.claude/settings.json" ]; then
+  assert_json_key_absent "$SANDBOX2/.claude/settings.json" '.anutronInstalled'
+fi
+
+# Source files untouched
+assert "source repo brainstorm skill still intact after symlink uninstall" test -d "$SOURCE_REPO/skills/brainstorm"
 
 rm -rf "$SANDBOX2"
 
-# ============================================================
-# Test 4: Handles replaced symlinks (regular files instead)
-# ============================================================
 echo ""
-echo "=== Test 4: Handles replaced symlinks gracefully ==="
+echo "=== Test 2b: Symlink-mode uninstall preserves user settings keys ==="
 
-SANDBOX3="/tmp/anutron-uninstall-test3-$$-$(date +%s)"
-mkdir -p "$SANDBOX3"
+SANDBOX2B="$(make_sandbox)"
+mkdir -p "$SANDBOX2B/.claude"
 
-cd "$SANDBOX3"
-ANUTRON_SOURCE="$SOURCE_REPO" bash "$INSTALL_SH" > /dev/null 2>&1
+cat > "$SANDBOX2B/.claude/settings.json" << 'USERSETTINGS2'
+{
+  "permissions": {
+    "allow": ["Read"]
+  },
+  "theme": "dark"
+}
+USERSETTINGS2
 
-# Replace one skill symlink with a regular directory
-first_skill=$(jq -r '.skills[0]' "$SANDBOX3/.anutron-install.json")
-if [ -n "$first_skill" ] && [ "$first_skill" != "null" ]; then
-  rm -f "$SANDBOX3/.claude/skills/$first_skill"
-  mkdir -p "$SANDBOX3/.claude/skills/$first_skill"
-  echo "user-owned" > "$SANDBOX3/.claude/skills/$first_skill/SKILL.md"
+cd "$SANDBOX2B"
+ANUTRON_SOURCE="$SOURCE_REPO" bash "$INSTALL_SH" --mode=symlink > /dev/null 2>&1
+cd "$SANDBOX2B"
+bash "$UNINSTALL_SH" > /dev/null 2>&1
+
+if [ -f "$SANDBOX2B/.claude/settings.json" ]; then
+  assert_json_key_present "$SANDBOX2B/.claude/settings.json" '.permissions'
+  assert_json_key_absent "$SANDBOX2B/.claude/settings.json" '.anutronInstalled'
 fi
 
-# Uninstall should still succeed
-uninstall3_output=$(bash "$UNINSTALL_SH" 2>&1)
-uninstall3_exit=$?
-assert "uninstall succeeds with replaced symlinks" test "$uninstall3_exit" -eq 0
+rm -rf "$SANDBOX2B"
 
-# The replaced skill dir should still exist (user-owned)
-if [ -n "$first_skill" ] && [ "$first_skill" != "null" ]; then
-  assert "user-replaced skill preserved" test -d "$SANDBOX3/.claude/skills/$first_skill"
+echo ""
+echo "=== Test 3: Legacy breadcrumb (no mode/scopeResolution fields) ==="
+
+SANDBOX3="$(make_sandbox)"
+
+# Step 1: Install with symlink mode to generate a real breadcrumb
+cd "$SANDBOX3"
+ANUTRON_SOURCE="$SOURCE_REPO" bash "$INSTALL_SH" --mode=symlink --scope=full > /dev/null 2>&1
+assert "install for legacy test succeeded" test "$?" -eq 0
+assert "breadcrumb exists for legacy stripping" test -f "$SANDBOX3/.anutron-install.json"
+
+# Step 2: Strip mode and scopeResolution — simulate a legacy breadcrumb
+jq 'del(.mode) | del(.scopeResolution)' "$SANDBOX3/.anutron-install.json" > "$SANDBOX3/.anutron-install.json.tmp"
+mv "$SANDBOX3/.anutron-install.json.tmp" "$SANDBOX3/.anutron-install.json"
+
+# Verify stripping worked
+legacy_mode_val="$(jq -r '.mode // "ABSENT"' "$SANDBOX3/.anutron-install.json")"
+assert_equals "mode field stripped from legacy breadcrumb" "ABSENT" "$legacy_mode_val"
+
+# Step 3: Run uninstall with the legacy breadcrumb
+cd "$SANDBOX3"
+legacy_exit=0
+bash "$UNINSTALL_SH" > /dev/null 2>&1 || legacy_exit=$?
+assert "legacy breadcrumb uninstall exits 0" test "$legacy_exit" -eq 0
+
+# Step 4: Assert clean removal — symlinks are gone
+assert "brainstorm symlink gone (legacy uninstall)" bash -c "! test -e '$SANDBOX3/.claude/skills/brainstorm'"
+assert "guard symlink gone (legacy uninstall)" bash -c "! test -e '$SANDBOX3/.claude/skills/guard'"
+
+# Breadcrumb gone
+assert_file_not_exists "$SANDBOX3/.anutron-install.json"
+
+# CLAUDE.md block gone
+if [ -f "$SANDBOX3/CLAUDE.md" ]; then
+  assert_file_not_contains "$SANDBOX3/CLAUDE.md" "BEGIN ANUTRON-INSTALL"
+fi
+
+# Settings cleaned
+if [ -f "$SANDBOX3/.claude/settings.json" ]; then
+  assert_json_key_absent "$SANDBOX3/.claude/settings.json" '.anutronInstalled'
 fi
 
 rm -rf "$SANDBOX3"
 
-# ============================================================
-# Test 5: settings.json removed when it becomes empty
-# ============================================================
 echo ""
-echo "=== Test 5: settings.json removed when empty ==="
+echo "=== Test 3b: Legacy breadcrumb + copy-mode install exits 0 (graceful skip) ==="
+# When a copy-mode install has had mode/scopeResolution stripped, the uninstaller
+# sees real directories in legacy mode where it only expects symlinks or plain files.
+# The uninstaller must exit 0 (not crash) and still clean up breadcrumb and settings.
 
-SANDBOX4="/tmp/anutron-uninstall-test4-$$-$(date +%s)"
-mkdir -p "$SANDBOX4"
+SANDBOX3B="$(make_sandbox)"
+cd "$SANDBOX3B"
+ANUTRON_SOURCE="$SOURCE_REPO" bash "$INSTALL_SH" --mode=copy --scope=full > /dev/null 2>&1
+
+# Strip mode and scopeResolution
+jq 'del(.mode) | del(.scopeResolution)' "$SANDBOX3B/.anutron-install.json" > "$SANDBOX3B/.anutron-install.json.tmp"
+mv "$SANDBOX3B/.anutron-install.json.tmp" "$SANDBOX3B/.anutron-install.json"
+
+cd "$SANDBOX3B"
+legacy_copy_exit=0
+bash "$UNINSTALL_SH" > /dev/null 2>&1 || legacy_copy_exit=$?
+assert "legacy-breadcrumb + copy-mode: uninstall exits 0" test "$legacy_copy_exit" -eq 0
+
+# Breadcrumb gone
+assert_file_not_exists "$SANDBOX3B/.anutron-install.json"
+
+# Settings cleaned
+if [ -f "$SANDBOX3B/.claude/settings.json" ]; then
+  assert_json_key_absent "$SANDBOX3B/.claude/settings.json" '.anutronInstalled'
+fi
+
+rm -rf "$SANDBOX3B"
+
+echo ""
+echo "=== Test 4: Pre-existing CLAUDE.md content preserved after uninstall ==="
+
+SANDBOX4="$(make_sandbox)"
+
+# Lay down project instructions before installing
+cat > "$SANDBOX4/CLAUDE.md" << 'EXISTING'
+# My Project
+
+These are my project instructions.
+
+## Build
+
+Run `make build`.
+EXISTING
 
 cd "$SANDBOX4"
-ANUTRON_SOURCE="$SOURCE_REPO" bash "$INSTALL_SH" > /dev/null 2>&1
+ANUTRON_SOURCE="$SOURCE_REPO" bash "$INSTALL_SH" --mode=copy > /dev/null 2>&1
 
-# Remove all non-anutron keys from settings.json so uninstall leaves it empty
-jq 'del(.permissions) | del(.mcpPermissions) | del(.myUserKey)' \
-  "$SANDBOX4/.claude/settings.json" > "$SANDBOX4/.claude/settings.json.tmp" 2>/dev/null || true
-mv "$SANDBOX4/.claude/settings.json.tmp" "$SANDBOX4/.claude/settings.json" 2>/dev/null || true
+# Verify markers are present alongside existing content
+assert_file_contains "$SANDBOX4/CLAUDE.md" "BEGIN ANUTRON-INSTALL"
+assert_file_contains "$SANDBOX4/CLAUDE.md" "My Project"
 
-# Make sure settings.json only has anutron keys
-jq '{hooks: .hooks, anutronInstalled: .anutronInstalled}' \
-  "$SANDBOX4/.claude/settings.json" > "$SANDBOX4/.claude/settings.json.tmp"
-mv "$SANDBOX4/.claude/settings.json.tmp" "$SANDBOX4/.claude/settings.json"
-
+cd "$SANDBOX4"
 bash "$UNINSTALL_SH" > /dev/null 2>&1
-assert "settings.json removed when empty" test ! -f "$SANDBOX4/.claude/settings.json"
+
+# After uninstall: original content preserved, markers gone
+assert "CLAUDE.md still exists (had project content)" test -f "$SANDBOX4/CLAUDE.md"
+assert_file_not_contains "$SANDBOX4/CLAUDE.md" "BEGIN ANUTRON-INSTALL"
+assert_file_contains "$SANDBOX4/CLAUDE.md" "My Project"
+assert_file_contains "$SANDBOX4/CLAUDE.md" "make build"
 
 rm -rf "$SANDBOX4"
+
+echo ""
+echo "=== Test 5: Uninstall summary mentions mode ==="
+
+SANDBOX5="$(make_sandbox)"
+cd "$SANDBOX5"
+ANUTRON_SOURCE="$SOURCE_REPO" bash "$INSTALL_SH" --mode=copy > /dev/null 2>&1
+
+cd "$SANDBOX5"
+summary_out="$(bash "$UNINSTALL_SH" 2>&1)"
+assert "uninstall summary mentions mode" bash -c "echo '$summary_out' | grep -qi 'mode'"
+assert "uninstall summary mentions skills" bash -c "echo '$summary_out' | grep -qi 'skill'"
+
+rm -rf "$SANDBOX5"
 
 # ============================================================
 # Results

@@ -1,3 +1,39 @@
+## v1.26.0 — 2026-05-23
+
+Docs decomposition: the README becomes a recipe-style home page with six topic-doc cards, each illustrated. Plus accumulated skill, rule, and infrastructure updates from ai-ron.
+
+**Docs**
+- **README** rewritten from 487 lines to a recipe-style overview. Six cards linking to focused topic docs, each with a hand-drawn illustration.
+- **`docs/workflow-guide.md`** rewritten as a narrative of the development cycle — the WHY of specs as source of truth, OpenSpec as the convention, and the skill cascade (kickoff/interview greenfield, brainstorm, execute-plan, ralph-review, spec-audit, bugbash, fixit) with inputs/outputs/handoffs per step. CI and prod-branch sections framed as optional conventions, not assumptions.
+- **New topic docs** lifted from the old README: `spec-driven-development.md`, `skills-catalog.md`, `claude-rules.md`, `session-topics.md`, `skill-usage-tracking.md`, `quick-start.md`.
+- **Six new illustrations** in `docs/images/` matching the existing recipe set's brush-pen-and-ink style. Two orphaned legacy images (`file-layout.png`, `spec-tdd-cycle.png`) removed.
+- **Publish flow:** the canonical README now lives in ai-ron and is published from there. `scripts/publish.sh` carries it across, and the skills-catalog regeneration step targets `docs/skills-catalog.md` instead of inlining tables in the README.
+
+**New skills**
+- **`/doitright`** — pick the long-term-correct option from a multi-option recommendation. Used when the user types `/doitright` in response to a choice, meaning "go with the proper long-term fix unless there's a real downside beyond effort."
+- **`/eli5`** — restate the prior response in plain, non-technical language and orient the user around the decision they need to make.
+- **`/trust-action`** — eliminate a specific Claude Code permission prompt by adding a targeted allowlist rule to global or project scope. Refuses unfixable patterns (`$(...)`, heredocs, `cd && ...`) and bypass-prone path-based rules; proposes CLAUDE.md hardening instead. Companion to `/trust-skills`.
+- **`/trust-skills`** — bulk-trust all skills defined in the current project's `.claude/skills/` directory by adding `Skill(<name>)` allowlist entries.
+
+**New rule snippet**
+- **`045-bash-command-style`** — codifies the bash patterns that trigger Claude Code's static-analysis flag (heredocs, `$(...)`, `cd && cmd`, inline interpreter invocations) and the prescribed workarounds (helper scripts, multi-`-m` commits, `git -C`).
+
+**Removed**
+- `/logo` and `/close-spec-drift` skills (consolidated or deprecated).
+- Rule snippets `022-user-facing-framing`, `050-git-workflow`, `065-plannotator-cli-hygiene` (rolled into other snippets or replaced).
+
+**Skill and infrastructure updates**
+- Many in-flight updates to `anutron-install`, `setup`, `migrate-to-openspec`, `agent-driven-development`, `brainstorm`, `execute-plan`, `ralph-review`, `spec-audit`, `bugbash`, `fixit`, and others — these accumulated between v1.25.0 and this release.
+- `claude-rules/` gains `lib/` (frontmatter parser used by anutron-install) and `scope-presets.json` (used by scope resolution).
+- New `home/bin/` includes `set-session-topic.sh` helper script (handles PID→SESSION_ID resolution for the `/set-topic` skill).
+- New `setup/install.sh` for the setup skill's wiring.
+
+**Notes**
+- Re-run `/setup` or `/anutron-install` to pick up rule and home/bin changes.
+- The new home page references images at `docs/images/<topic>.png`; if you fork or steal individual docs, grab the matching illustration too.
+
+---
+
 ## v1.25.0 — 2026-05-12
 
 `/tp` CLI for cheap checkbox edits, ralph-review Inevitability label, execute-plan pre-archive quality gates, and a new user-facing framing rule.

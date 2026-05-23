@@ -2,6 +2,7 @@
 name: plannotator-specs
 description: Interactive spec review via Plannotator. Use after writing a spec document (design doc, SPEC file) to let the user review it with inline annotations before committing. Auto-detects the most recently written spec file.
 allowed-tools: Bash(plannotator:*)
+tags: [plannotator]
 ---
 
 # Spec Review via Plannotator

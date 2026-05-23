@@ -1,6 +1,7 @@
 ---
 name: spec-recommender
 description: "Use when code exists without spec coverage to detect gaps, infer intent, and recommend OpenSpec capabilities + requirements. Output points the user at `openspec instructions specs` to scaffold the right structure."
+tags: [spec]
 ---
 
 # Spec Recommender

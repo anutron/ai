@@ -1,3 +1,7 @@
+---
+tags: [formatting]
+audience: [shared]
+---
 ## Markdown Formatting Requirements
 
 All markdown you produce — plans, reports, codebase gap summaries, agent outputs, specs, any structured text — MUST use proper markdown to ensure correct rendering in Plannotator.

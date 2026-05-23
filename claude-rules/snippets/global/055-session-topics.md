@@ -1,3 +1,7 @@
+---
+tags: [personal]
+audience: [aaron]
+---
 ## Session Topics
 
 When you have enough context to understand what the session is about, set the topic by invoking `/set-topic --initial <topic>`. Do this silently — don't announce it.

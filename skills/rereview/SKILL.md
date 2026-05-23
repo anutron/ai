@@ -1,6 +1,7 @@
 ---
 name: rereview
 description: "Use when a previous review missed something or the user wants a thorough second pass — re-review with fresh eyes, zero regressions, go slow and analyze everything"
+tags: [quality]
 ---
 
 # Fresh-Eyes Re-Review

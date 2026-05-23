@@ -1,6 +1,7 @@
 ---
 name: spec-audit
 description: "Audit codebase spec coverage – inventory OpenSpec capabilities, map them to code, dispatch agents to find behavioral gaps. Use when the user wants to check spec health or find coverage holes."
+tags: [spec]
 ---
 
 # Spec Audit

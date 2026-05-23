@@ -2,6 +2,7 @@
 name: brainstorm
 description: "You MUST use this before any creative work -- creating features, building components, adding functionality, or modifying behavior. Explores intent, designs the solution, scaffolds an OpenSpec change folder (proposal + design + delta specs + tasks), and hands off to execution."
 user-invocable: true
+tags: [spec]
 ---
 
 # Brainstorm: From Idea to OpenSpec Change
@@ -159,14 +160,6 @@ Present 2-3 approaches with trade-offs, informed by the norms surfaced in Step 7
 Once you understand what you're building, present the design. Scale each section to its complexity. Cover as relevant: architecture, components, data flow, error handling, testing strategy.
 
 Ask after each section whether it looks right so far via `AskUserQuestion`. Be ready to go back and revise.
-
-**Section framing.** If your `~/.claude/CLAUDE.md` (or any project-level CLAUDE.md) defines user-facing framing instructions for choices and findings, apply them here. Otherwise, the default brainstorm-section structure is:
-
-- **Outcome** – what this section unlocks, in plain language
-- **Decisions I'm making** – the opinionated choice, with the constraint that drove it (a line in `design.md`, a norm from Step 7, a user preference surfaced earlier). Don't hedge – the user is approving decisions, not arbitrating between alternatives
-- **Technical details** – brief 1-3 line summary of the concrete artifacts (type names, key fields, APIs, file locations)
-
-Collapse parts that don't apply. If a section is pure architecture/rationale, Decisions may collapse into Outcome. If there are no concrete artifacts yet, omit Technical details.
 
 **Design for isolation and clarity:**
 

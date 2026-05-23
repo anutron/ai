@@ -1,3 +1,7 @@
+---
+tags: [spec]
+audience: [shared]
+---
 ## Plan execution handoff
 
 After a plan is approved via `ExitPlanMode`, always:

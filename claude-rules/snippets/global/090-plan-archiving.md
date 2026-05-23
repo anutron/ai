@@ -1,3 +1,7 @@
+---
+tags: [spec]
+audience: [shared]
+---
 <!--
 This snippet was removed during the OpenSpec migration. In OpenSpec, plans
 live as `tasks.md` inside `openspec/changes/<name>/`, and `openspec archive

@@ -1,3 +1,7 @@
+---
+tags: [formatting]
+audience: [shared]
+---
 ## Writing style
 
 - **Titles:** Always sentence case (capitalize first word only). Never Title Case or ALL CAPS.

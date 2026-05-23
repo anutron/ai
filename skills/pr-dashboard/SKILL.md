@@ -3,6 +3,7 @@ name: pr-dashboard
 description: Use when the user asks about PR status, open PRs, review requests, or wants a PR overview — shows open PRs, review requests, and recently closed PRs with age and status
 allowed-tools: Bash
 user-invocable: true
+tags: [pr]
 ---
 
 # PR Dashboard

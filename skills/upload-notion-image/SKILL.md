@@ -1,6 +1,7 @@
 ---
 name: upload-notion-image
 description: Upload local images to Notion pages natively via the Notion API file upload flow. No external hosting needed — images live inside Notion. Use when embedding images in Notion pages.
+tags: [personal]
 ---
 
 ## What This Skill Does

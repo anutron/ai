@@ -94,13 +94,15 @@ save_checksums() {
 
 resolve_variables() {
   local file="$1"
-  local project_dir
+  local project_dir personal_dir
   project_dir="$(dirname "$RULES_DIR")"
+  personal_dir="$(dirname "$project_dir")"
 
   # Built-in variables (name=value, one per line)
   local builtins
   builtins="CLAUDE_RULES_DIR=$RULES_DIR
 PROJECT_DIR=$project_dir
+PERSONAL_DIR=$personal_dir
 GLOBAL_TARGET=$GLOBAL_TARGET"
 
   # Collect all variables: builtins first, then custom from variables.env

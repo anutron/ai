@@ -1,12 +1,14 @@
+---
+tags: [spec]
+audience: [shared]
+---
 ## Spec-driven development (OpenSpec)
-
-**Applies to:** `~/Personal/*` and `~/Development/ai/*` projects. Does NOT apply to `~/Development/thanx/*` (those follow Thanx conventions).
 
 **Opt-in per project via the `openspec/` directory.** Projects with an `openspec/` directory at their root use spec-driven development. Projects without one do not.
 
 **Detection:** `test -d openspec` – zero-cost, no file snooping.
 
-**Recommendation:** When working in `~/Personal/*` or `~/Development/ai/*`, if the user creates a new application or asks to create/modify code in a project that lacks an `openspec/` directory, recommend running `openspec init` (or `/migrate-to-openspec` if a legacy `.specs` system is present).
+**Recommendation:** If the user creates a new application or asks to create/modify code in a project that lacks an `openspec/` directory, recommend running `openspec init` (or `/migrate-to-openspec` if a legacy `.specs` system is present).
 
 ### The process (spec-first, non-negotiable)
 
