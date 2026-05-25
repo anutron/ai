@@ -6,8 +6,8 @@ tags: [pr]
 
 ## Context
 
-- Current branch: !`git branch --show-current`
-- Git status: !`git status --short`
+- Current branch: !`git branch --show-current 2>/dev/null || echo '(not in a git repo)'`
+- Git status: !`git status --short 2>/dev/null || echo '(not in a git repo)'`
 
 ## Your task
 

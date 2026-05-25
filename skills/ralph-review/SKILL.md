@@ -27,9 +27,9 @@ User-provided arguments always win over auto-detection. If auto-detection is amb
 
 ## Context
 
-- Current branch: !`git branch --show-current`
+- Current branch: !`git branch --show-current 2>/dev/null || echo '(not in a git repo)'`
 - Default branch ref: !`git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | grep -v '^origin/HEAD$' | head -1`
-- Git status: !`git status --short`
+- Git status: !`git status --short 2>/dev/null || echo '(not in a git repo)'`
 - OpenSpec project: !`test -d openspec && echo "yes" || echo "no"`
 - Active changes: !`test -d openspec/changes && openspec list --changes --json 2>/dev/null || echo "none"`
 - Worktree info: !`git rev-parse --show-toplevel && echo "---" && git worktree list --porcelain 2>/dev/null | head -20`

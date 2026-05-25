@@ -75,6 +75,47 @@ tokens_overlap() {
   return 1
 }
 
+# Validate that a pre-archive change name resolves to a real change folder
+# under <spec_dir>/changes/<name>. Used by `--pre-archive <name>` mode.
+validate_pre_archive_change() {
+  local spec_dir="$1" change="$2"
+  [[ -n "$change" ]] || die "--pre-archive requires a change name"
+  local cdir="$spec_dir/changes/$change"
+  [[ -d "$cdir" ]] || die "pre-archive change folder not found: $cdir"
+}
+
+# Emit one absolute path per line for every spec.md the audit should treat as
+# part of the corpus. Always includes base specs at <spec_dir>/specs/. When
+# the global PRE_ARCHIVE_CHANGE env is set, also includes the named change's
+# delta specs at <spec_dir>/changes/<name>/specs/<capability>/spec.md.
+enumerate_spec_files() {
+  local spec_dir="$1"
+  local base_specs_dir="$spec_dir/specs"
+  if [[ -d "$base_specs_dir" ]]; then
+    find "$base_specs_dir" -mindepth 2 -maxdepth 2 -type f -name 'spec.md' 2>/dev/null
+  fi
+  if [[ -n "${PRE_ARCHIVE_CHANGE:-}" ]]; then
+    local change_specs_dir="$spec_dir/changes/$PRE_ARCHIVE_CHANGE/specs"
+    if [[ -d "$change_specs_dir" ]]; then
+      find "$change_specs_dir" -mindepth 2 -maxdepth 2 -type f -name 'spec.md' 2>/dev/null
+    fi
+  fi
+}
+
+# Classify a spec.md path as a base spec or a delta from the pre-archive change.
+# Echoes "base" or "pending".
+spec_file_source() {
+  local spec_dir="$1" abs="$2"
+  if [[ -n "${PRE_ARCHIVE_CHANGE:-}" ]]; then
+    local change_specs_prefix="$spec_dir/changes/$PRE_ARCHIVE_CHANGE/"
+    if [[ "$abs" == "$change_specs_prefix"* ]]; then
+      printf 'pending'
+      return
+    fi
+  fi
+  printf 'base'
+}
+
 # Map a file extension to a language label.
 ext_to_lang() {
   case "$1" in
@@ -771,38 +812,46 @@ cmd_inventory() {
   done < <(list_code_files "$root" "$cfg")
 
   # Build spec_files entries.
-  # OpenSpec layout: only base specs at `<spec_dir>/specs/<capability>/spec.md`.
-  # Active-change deltas under `<spec_dir>/changes/...` describe future state
-  # and are excluded from the audit corpus.
+  # OpenSpec layout: base specs at `<spec_dir>/specs/<capability>/spec.md`.
+  # When PRE_ARCHIVE_CHANGE is set, also include the named change's deltas
+  # at `<spec_dir>/changes/<change>/specs/<capability>/spec.md`; each such
+  # entry is tagged `source: "pending"` and `pending_change: "<name>"`.
   local spec_json='[]'
-  local base_specs_dir="$spec_dir/specs"
-  if [[ -d "$base_specs_dir" ]]; then
-    while IFS= read -r f; do
-      [[ -n "$f" ]] || continue
-      local rel="${f#$root/}"
-      local cap
-      cap=$(basename "$(dirname "$f")")
-      local sections_json
-      sections_json=$({ grep -nE '^#+[[:space:]]+' "$f" 2>/dev/null || true; } \
-        | sed -E 's/^[0-9]+:#+[[:space:]]+//' \
-        | awk 'NF' | jq -R . | jq -s .)
+  while IFS= read -r f; do
+    [[ -n "$f" ]] || continue
+    local rel="${f#$root/}"
+    local cap
+    cap=$(basename "$(dirname "$f")")
+    local sections_json
+    sections_json=$({ grep -nE '^#+[[:space:]]+' "$f" 2>/dev/null || true; } \
+      | sed -E 's/^[0-9]+:#+[[:space:]]+//' \
+      | awk 'NF' | jq -R . | jq -s .)
+    local source
+    source=$(spec_file_source "$spec_dir" "$f")
+    if [[ "$source" == "pending" ]]; then
+      spec_json=$(jq --arg path "$rel" --arg cap "$cap" --argjson sections "$sections_json" --arg change "$PRE_ARCHIVE_CHANGE" \
+        '. + [{path: $path, capability: $cap, sections: $sections, source: "pending", pending_change: $change}]' <<< "$spec_json")
+    else
       spec_json=$(jq --arg path "$rel" --arg cap "$cap" --argjson sections "$sections_json" \
-        '. + [{path: $path, capability: $cap, sections: $sections}]' <<< "$spec_json")
-    done < <(find "$base_specs_dir" -mindepth 2 -maxdepth 2 -type f -name 'spec.md' 2>/dev/null)
-  fi
+        '. + [{path: $path, capability: $cap, sections: $sections, source: "base"}]' <<< "$spec_json")
+    fi
+  done < <(enumerate_spec_files "$spec_dir")
 
   jq -n \
     --argjson code "$code_json" \
     --argjson specs "$spec_json" \
     --argjson exports_count "$total_exports" \
+    --arg pending_change "${PRE_ARCHIVE_CHANGE:-}" \
     '{
       code_files: $code,
       spec_files: $specs,
       counts: {
         code_files: ($code | length),
         spec_files: ($specs | length),
-        exports: $exports_count
-      }
+        exports: $exports_count,
+        pending_spec_files: ($specs | map(select(.source == "pending")) | length)
+      },
+      pre_archive: (if $pending_change == "" then null else $pending_change end)
     }'
 }
 
@@ -1285,7 +1334,15 @@ usage() {
   cat <<'EOF'
 audit.sh — deterministic helper CLI for the spec-audit skill.
 
-Usage: audit.sh <subcommand> [args...]
+Usage: audit.sh [--pre-archive <change>] <subcommand> [args...]
+
+Global flags (must precede the subcommand):
+  --pre-archive <change>   Treat the named active change's delta specs as part
+                           of the spec corpus, as if it had just been archived.
+                           Affects: inventory (delta specs tagged
+                           source: "pending"). Other subcommands ignore it.
+                           The change folder at <spec-dir>/changes/<change>/
+                           must exist.
 
 Config R/W:
   init <spec-dir>                              Write empty config skeleton.
@@ -1325,8 +1382,45 @@ main() {
     usage
     exit 0
   fi
+
+  # Parse leading global flags before the subcommand.
+  PRE_ARCHIVE_CHANGE=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --pre-archive)
+        PRE_ARCHIVE_CHANGE="${2:-}"
+        [[ -n "$PRE_ARCHIVE_CHANGE" ]] || die "--pre-archive requires a change name"
+        shift 2
+        ;;
+      --pre-archive=*)
+        PRE_ARCHIVE_CHANGE="${1#--pre-archive=}"
+        [[ -n "$PRE_ARCHIVE_CHANGE" ]] || die "--pre-archive requires a change name"
+        shift
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+  export PRE_ARCHIVE_CHANGE
+
+  if [[ $# -eq 0 ]]; then
+    err "missing subcommand"
+    usage
+    exit 2
+  fi
+
   require_jq
   local cmd="$1"; shift
+
+  # Validate pre-archive change exists when applicable. Only inventory
+  # currently honors the flag; other subcommands silently ignore it.
+  if [[ -n "$PRE_ARCHIVE_CHANGE" && "$cmd" == "inventory" ]]; then
+    local _spec_dir_for_pre_archive
+    _spec_dir_for_pre_archive=$(resolve_spec_dir "${1:-}")
+    validate_pre_archive_change "$_spec_dir_for_pre_archive" "$PRE_ARCHIVE_CHANGE"
+  fi
+
   case "$cmd" in
     init)               cmd_init "$@" ;;
     init-tree)          cmd_init_tree "$@" ;;

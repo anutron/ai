@@ -14,8 +14,8 @@ Fast safety check before committing. Scans for secrets, security antipatterns, t
 
 ## Context
 
-- Staged files: !`git diff --cached --name-only`
-- Unstaged changes: !`git diff --name-only`
+- Staged files: !`git diff --cached --name-only 2>/dev/null || echo '(not in a git repo)'`
+- Unstaged changes: !`git diff --name-only 2>/dev/null || echo '(not in a git repo)'`
 - Project type: !`find . -maxdepth 1 \( -name go.mod -o -name Gemfile -o -name package.json -o -name Cargo.toml -o -name pyproject.toml \) 2>/dev/null | head -3`
 
 ## Instructions

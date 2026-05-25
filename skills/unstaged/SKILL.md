@@ -10,11 +10,11 @@ Show all uncommitted and unstaged changes in the current repo, grouped by logica
 
 ## Context
 
-- Git status: !`git status --short`
-- Current branch: !`git branch --show-current`
-- Staged diff summary: !`git diff --cached --stat`
-- Unstaged diff summary: !`git diff --stat`
-- Untracked files: !`git ls-files --others --exclude-standard`
+- Git status: !`git status --short 2>/dev/null || echo '(not in a git repo)'`
+- Current branch: !`git branch --show-current 2>/dev/null || echo '(not in a git repo)'`
+- Staged diff summary: !`git diff --cached --stat 2>/dev/null || echo '(not in a git repo)'`
+- Unstaged diff summary: !`git diff --stat 2>/dev/null || echo '(not in a git repo)'`
+- Untracked files: !`git ls-files --others --exclude-standard 2>/dev/null || echo '(not in a git repo)'`
 
 ## Instructions
 

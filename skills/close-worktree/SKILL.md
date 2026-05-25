@@ -8,12 +8,12 @@ tags: [personal]
 ## Context
 
 - Current directory: !`pwd`
-- Current branch: !`git branch --show-current 2>/dev/null`
+- Current branch: !`git branch --show-current 2>/dev/null || echo '(not in a git repo)'`
 - Is worktree: !`git rev-parse --git-common-dir 2>/dev/null | grep -q '/worktrees/' && echo "yes" || echo "no"`
 - Main repo: !`git worktree list 2>/dev/null | head -1 | awk '{print $1}'`
 - Main branch: !`git -C "$(git worktree list 2>/dev/null | head -1 | awk '{print $1}')" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||' || echo "main"`
 - Commits ahead: !`git log "$(git worktree list 2>/dev/null | head -1 | awk '{print $2}')..HEAD" --oneline 2>/dev/null | wc -l | tr -d ' '`
-- Uncommitted changes: !`git status --short 2>/dev/null`
+- Uncommitted changes: !`git status --short 2>/dev/null || echo '(not in a git repo)'`
 
 ## Prerequisites
 

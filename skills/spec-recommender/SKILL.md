@@ -31,9 +31,9 @@ When invoked programmatically by `/ralph-review` or `/spec-audit`, drift items a
 ## Context
 
 - OpenSpec project: !`test -d openspec && echo "yes" || echo "no openspec/ dir"`
-- Current branch: !`git branch --show-current`
+- Current branch: !`git branch --show-current 2>/dev/null || echo '(not in a git repo)'`
 - Default branch ref: !`git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | grep -v '^origin/HEAD$' | head -1`
-- Git status: !`git status --short`
+- Git status: !`git status --short 2>/dev/null || echo '(not in a git repo)'`
 - Existing capabilities: !`openspec list --specs 2>/dev/null | head -10`
 - Active changes: !`openspec list --changes 2>/dev/null | head -10`
 - Recent base spec changes: !`git diff --name-only HEAD~10..HEAD -- openspec/specs/ 2>/dev/null | head -10`

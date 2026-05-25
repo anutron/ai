@@ -116,22 +116,38 @@ Always bound output to avoid blowing up the context window:
 
 #### Error Handling and Exit Codes
 
-**Never use `||` or `&&`** -- Claude Code's permission system treats these as multiple operations and blocks them.
+Use `2>/dev/null` to suppress stderr, but **it does not fix exit codes**. When a command fails, the skill loader sees the non-zero exit code and treats the whole init expression as failed, the skill never loads, and the user sees `Shell command failed for pattern ...`. Bare `2>/dev/null` is not enough.
 
-Use `2>/dev/null` to suppress stderr, but **it does not fix exit codes**. When a command fails, the skill loader sees the non-zero exit code and treats it as an error, even though stderr is suppressed. This breaks skill loading entirely.
+Pick one of two safe patterns:
 
-**Fix: always pipe through `| head -N`** after `2>/dev/null`. In a pipeline, the exit code is that of the last command (`head`), which exits 0 even when the upstream command fails and produces no output.
+**Pattern A: pipe through `| head -N`** -- silent fallback. In a pipeline the exit code is the last command's, so empty upstream output yields exit 0.
 
 ```markdown
 # BAD -- 2>/dev/null suppresses stderr but exit code is still non-zero
 - Tag: !{git describe --tags --abbrev=0 2>/dev/null}
 
-# BAD -- || treated as multiple operations by permission system
-- Tag: !{git describe --tags --abbrev=0 2>/dev/null || echo "No tags"}
-
 # GOOD -- pipe neutralizes exit code, empty output on failure is fine
 - Tag: !{git describe --tags --abbrev=0 2>/dev/null | head -1}
 ```
+
+**Pattern B: `|| echo '<sentinel>'`** -- produces a readable placeholder so Claude knows the command failed, not just that the output is empty. Useful when the difference between "no value" and "command failed" matters semantically.
+
+```markdown
+- Branch: !{git branch --show-current 2>/dev/null || echo '(not in a git repo)'}
+- Repo root: !{git rev-parse --show-toplevel 2>/dev/null || echo '(not in a git repo)'}
+```
+
+`||` and `&&` are fine inside skill init expressions. They are sometimes flagged in Bash tool calls Claude makes later (a separate concern in the global Bash style rules), but the skill loader does not block them.
+
+#### Guarding git commands against non-repo CWD
+
+Skills are increasingly invoked from sandboxed sessions or scratch directories where the CWD is not a git work tree. Every standalone `git` call in skill init MUST tolerate that case -- otherwise the skill fails to load entirely.
+
+- **Standalone git commands** (no pipe, no chain) -- use Pattern A or B above so the exit code is 0 and the output is meaningful.
+- **Piped git commands** (`git ... | head`, `git ... | awk`, etc.) -- already safe because the pipe absorbs the upstream exit code. Stderr will still leak unless you add `2>/dev/null` to the git stage; do that.
+- **Chained commands** (`git X && git Y`) -- `&&` propagates failure. Either rewrite as two separate context lines or wrap with Pattern B at the end of the chain.
+
+The classic failure mode: `!{git branch --show-current}` outside a git repo emits `fatal: not a git repository ...` to stderr AND exits non-zero. The skill never loads. Patterns A and B both fix this.
 
 ### String Substitutions
 
@@ -162,9 +178,10 @@ All skills live in `.claude/skills/<name>/SKILL.md` inside the project. Never pu
 
 After writing, check the skill for:
 - [ ] No `$()` in any dynamic context line
-- [ ] No `||` or `&&` operators in any dynamic context line
-- [ ] Error-prone commands use `2>/dev/null | head -N`
-- [ ] No bare `2>/dev/null` without a trailing pipe
+- [ ] Every standalone `git` call uses Pattern A (`2>/dev/null | head -N`) or Pattern B (`2>/dev/null || echo '<sentinel>'`) so it survives a non-repo CWD
+- [ ] No bare `2>/dev/null` left dangling without a pipe or `||` fallback
+- [ ] Piped `git` stages still have `2>/dev/null` to avoid stderr leaks
+- [ ] Chained init commands (`X && Y`) end with a Pattern B fallback or are split into separate context lines
 - [ ] Description starts with "Use when..." or "You MUST use this..." (trigger pattern, not noun phrase)
 - [ ] No inline backticks in prose that could break shell evaluation
 - [ ] No contractions in the skill body

@@ -12,8 +12,8 @@ Checkpoint your work by committing completed changes. In OpenSpec projects, gate
 
 - OpenSpec project: !`test -d openspec && echo "yes" || echo "no"`
 - Active changes: !`test -d openspec/changes && openspec list --changes --json 2>/dev/null || echo "none"`
-- Current branch: !`git branch --show-current`
-- Git status: !`git status --short`
+- Current branch: !`git branch --show-current 2>/dev/null || echo '(not in a git repo)'`
+- Git status: !`git status --short 2>/dev/null || echo '(not in a git repo)'`
 
 ## Instructions
 

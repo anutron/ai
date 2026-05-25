@@ -25,8 +25,8 @@ This ensures execution starts with a fresh context window. Do not proceed with e
 
 ## Context
 
-- Current branch: !`git branch --show-current`
-- Git status: !`git status --short`
+- Current branch: !`git branch --show-current 2>/dev/null || echo '(not in a git repo)'`
+- Git status: !`git status --short 2>/dev/null || echo '(not in a git repo)'`
 - Project root: !`pwd`
 - In-flight changes: !`openspec list --changes --json 2>/dev/null | head -200`
 

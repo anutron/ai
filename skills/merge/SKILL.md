@@ -7,8 +7,8 @@ tags: [pr]
 
 ## Context
 
-- Current branch: !`git branch --show-current`
-- Git status: !`git status --short`
+- Current branch: !`git branch --show-current 2>/dev/null || echo '(not in a git repo)'`
+- Git status: !`git status --short 2>/dev/null || echo '(not in a git repo)'`
 - Remotes: !`git remote -v 2>/dev/null | head -10`
 - Commits (upstream): !`git log upstream/master..HEAD --oneline 2>/dev/null | head -50`
 - Commits (origin): !`git log origin/master..HEAD --oneline 2>/dev/null | head -50`

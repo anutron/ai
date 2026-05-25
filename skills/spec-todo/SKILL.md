@@ -24,7 +24,7 @@ Invocation forms:
 
 - OpenSpec project: !`test -d openspec && echo "yes" || echo "no"`
 - Todo directory: !`ls .workflow/todo/*.md 2>/dev/null | head -20 || echo "(empty)"`
-- Current branch: !`git branch --show-current`
+- Current branch: !`git branch --show-current 2>/dev/null || echo '(not in a git repo)'`
 
 ---
 

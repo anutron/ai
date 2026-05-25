@@ -14,8 +14,8 @@ Shorthand for reviewing code. Routes to the right tool based on context.
 
 ## Context
 
-- Git status: !`git status --short`
-- Current branch: !`git branch --show-current`
+- Git status: !`git status --short 2>/dev/null || echo '(not in a git repo)'`
+- Current branch: !`git branch --show-current 2>/dev/null || echo '(not in a git repo)'`
 
 ## Instructions
 

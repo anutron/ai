@@ -7,7 +7,7 @@ tags: [personal]
 
 ## Context
 
-- Current branch: !`git branch --show-current`
+- Current branch: !`git branch --show-current 2>/dev/null || echo '(not in a git repo)'`
 - Latest tag: !`git describe --tags --abbrev=0 2>/dev/null | head -1`
 - Recent commits (last 7 days): !`git log --oneline --since="7 days ago" 2>/dev/null | head -20`
 

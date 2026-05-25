@@ -26,11 +26,11 @@ If no arguments are provided, ask the user what they're debugging.
 
 ## Context
 
-- Current branch: !`git branch --show-current`
-- Git status: !`git status --short`
+- Current branch: !`git branch --show-current 2>/dev/null || echo '(not in a git repo)'`
+- Git status: !`git status --short 2>/dev/null || echo '(not in a git repo)'`
 - Project root: !`pwd`
 - Project type: !`find . -maxdepth 1 \( -name go.mod -o -name Gemfile -o -name package.json -o -name Cargo.toml -o -name pyproject.toml -o -name setup.py -o -name requirements.txt -o -name pom.xml -o -name build.gradle -o -name Makefile \) 2>/dev/null | head -5`
-- Recent commits: !`git log --oneline -10`
+- Recent commits: !`git log --oneline -10 2>/dev/null || echo '(not in a git repo)'`
 - Test files: !`find . -maxdepth 4 -name "*_test.*" -o -name "*.test.*" -o -name "*_spec.*" 2>/dev/null | head -10`
 
 ## Overview

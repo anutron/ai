@@ -1,3 +1,22 @@
+## v1.28.0 — 2026-05-25
+
+Adds a `--pre-archive` mode to `spec-audit` that previews coverage as if a named active OpenSpec change had already been archived, and hardens 20 skills against being loaded from a non-git CWD.
+
+**spec-audit `--pre-archive`**
+- New flag passed before the subcommand: `audit.sh --pre-archive <change-name> inventory openspec`. The named change's delta specs are folded into the spec corpus and tagged `source: 'pending'` / `pending_change: '<name>'` so the downstream mapping and analysis phases see post-archive coverage instead of misleadingly flagging newly-added code as unmapped.
+- Inventory output gains a top-level `pre_archive` field, a `counts.pending_spec_files` counter, and per-entry `source` / `pending_change` fields on `spec_files`.
+- Validates that the change folder exists before merging. Other subcommands silently ignore the flag.
+
+**Skill init guards against non-repo CWDs**
+- 37 standalone `git` invocations across 20 SKILL.md init blocks now append `2>/dev/null || echo '(not in a git repo)'` so skills like `/handoff` load cleanly when CWD isn't a git work tree (sandboxed sessions, scratch dirs).
+- Piped commands already exit 0 via the last pipe stage and were left alone.
+- `write-skill` documents the pattern so new skills inherit the guard.
+
+**Misc**
+- Removes `home/bin/mysqld-orphan-check.sh` (moved to a separate sketch repo).
+
+---
+
 ## v1.27.0 — 2026-05-25
 
 Adds `op-secret`, a tiny shell helper for lazily loading API tokens from 1Password into the current shell session. Also catches up the skills catalog with everything added since v1.26.0 and publishes a previously-untracked diagnostic script.

@@ -16,12 +16,35 @@ OpenSpec-only. Legacy `specs/*.md` projects must run `/migrate-to-openspec` befo
 
 ```
 $ARGUMENTS - Optional:
-  <directory>       Scoped full audit
-  --full            Force full audit
-  --reconfigure     Re-run bootstrap (regenerate .audit-config.json)
+  <directory>             Scoped full audit
+  --full                  Force full audit
+  --reconfigure           Re-run bootstrap (regenerate .audit-config.json)
+  --pre-archive <change>  Audit against base specs + named change's deltas,
+                          as if the change had just been archived. Use right
+                          before `openspec archive <change>` to confirm the
+                          archive won't leave gaps. See "Pre-archive mode" below.
 ```
 
 When `openspec/.audit-config.json` exists, Phase 0.5's bootstrap step is skipped but the drift step still runs every time. `--reconfigure` forces bootstrap to run again.
+
+### Pre-archive mode
+
+The default audit reads only base specs at `openspec/specs/<capability>/spec.md` and explicitly excludes active-change deltas, because deltas describe future state. That's the right behavior for ongoing health checks — but it makes the audit a no-op the moment a new capability or new requirement is introduced through an in-flight change, because the work isn't a base spec yet.
+
+`--pre-archive <change>` closes that gap. When set, `audit.sh inventory openspec --pre-archive <change>` adds the named change's delta spec files to the spec corpus (tagged `source: "pending"` and `pending_change: "<change>"` in the JSON). The downstream mapping and analysis phases then have material to map newly-added code to, so the audit reports what coverage will look like *after* the archive — not the misleading current state.
+
+**When to use it:**
+
+- Right before `openspec archive <change>` — confirms code-to-spec coverage will be healthy post-archive.
+- After implementing a change that creates a brand-new capability (no base spec yet) — without the flag, the audit reports the new code as unmapped, which is technically true but operationally noise.
+
+**What pre-archive mode does NOT do:**
+
+- It does not apply MODIFIED/REMOVED/RENAMED deltas to the base spec content — it just includes the delta files alongside the base files in the corpus. For ADDED Requirements (the common case) this works exactly right. For other delta operations, the result is approximate.
+- It does not change the bootstrap (`init-tree`) behavior. Bootstrap reflects current repo state, not future state.
+- It does not change the SHA tracking in `inventory.json` (still records current HEAD). Pre-archive runs are diagnostic, not state-of-record audits.
+
+**Findings interpretation:** when an entry in `spec_files` has `source: "pending"`, any code mapped to it is "covered by pending archive" rather than "truly covered". Reports should present these in a separate "would-resolve-on-archive" section.
 
 ## Context
 
@@ -215,7 +238,13 @@ Run the inventory CLI:
 audit.sh inventory openspec > "$AUDIT_DIR/inventory.json"
 ```
 
-The CLI honors `extensions` and `excludes` from `.audit-config.json` and emits the schema below. **It scans only `openspec/specs/<capability>/spec.md` files** — active-change deltas at `openspec/changes/<change>/specs/<capability>/spec.md` are excluded automatically (the CLI restricts the spec walk to the `specs/` subdirectory of the spec-dir).
+For pre-archive mode (see Arguments above), pass `--pre-archive` before the subcommand so deltas from the named change join the corpus:
+
+```bash
+audit.sh --pre-archive <change> inventory openspec > "$AUDIT_DIR/inventory.json"
+```
+
+The CLI honors `extensions` and `excludes` from `.audit-config.json` and emits the schema below. **By default it scans only `openspec/specs/<capability>/spec.md` files** — active-change deltas at `openspec/changes/<change>/specs/<capability>/spec.md` are excluded. **With `--pre-archive <change>`** the named change's deltas are added to the corpus and tagged `source: "pending"`.
 
 **Audit directory naming:** Use `.workflow/audits/{date}/` for the first audit on a given day. If an audit directory for today already exists, append a version suffix: `{date}_v2`, `{date}_v3`, etc. Never overwrite a previous audit – preserve all results for delta comparison.
 
@@ -237,16 +266,28 @@ The CLI honors `extensions` and `excludes` from `.audit-config.json` and emits t
     {
       "path": "openspec/specs/authentication/spec.md",
       "capability": "authentication",
-      "sections": ["Purpose", "Requirements", "Polling Loop", "Token Refresh"]
+      "sections": ["Purpose", "Requirements", "Polling Loop", "Token Refresh"],
+      "source": "base"
+    },
+    {
+      "path": "openspec/changes/add-2fa/specs/authentication/spec.md",
+      "capability": "authentication",
+      "sections": ["ADDED Requirements", "Requirement: Two-factor enrollment"],
+      "source": "pending",
+      "pending_change": "add-2fa"
     }
   ],
   "counts": {
     "code_files": 47,
-    "spec_files": 12,
-    "exports": 183
-  }
+    "spec_files": 13,
+    "exports": 183,
+    "pending_spec_files": 1
+  },
+  "pre_archive": "add-2fa"
 }
 ```
+
+The `pre_archive` field is `null` for a normal audit and equals the change name when `--pre-archive` was passed. The `source` field on `spec_files` entries is always `"base"` for entries from `openspec/specs/`; entries from a pending change have `"source": "pending"` and a `pending_change` field. The `counts.pending_spec_files` is a quick check for whether any deltas joined the corpus.
 
 **`commit_sha` write rules:**
 
@@ -257,7 +298,7 @@ The CLI honors `extensions` and `excludes` from `.audit-config.json` and emits t
 
 The deterministic scan can't map feature-organized capabilities to technically-organized code. Use an agent to build the many-to-many map.
 
-Spawn a single agent (`subagent_type: general-purpose`) with the full list of code files (paths + exports) and base spec files (paths + sections). Its job:
+Spawn a single agent (`subagent_type: general-purpose`) with the full list of code files (paths + exports) and spec files (paths + sections; some may be tagged `source: "pending"` in pre-archive mode). Its job:
 
 ```
 Given these code files and base spec files, produce a mapping.

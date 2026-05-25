@@ -15,7 +15,7 @@ Generate a structured prompt capturing the current conversation context so it ca
 ## Context
 
 - Repo: !`git rev-parse --show-toplevel 2>/dev/null | xargs basename 2>/dev/null | head -1`
-- Branch: !`git branch --show-current`
+- Branch: !`git branch --show-current 2>/dev/null || echo '(not in a git repo)'`
 - Recent commits: !`git log origin/HEAD..HEAD --oneline 2>/dev/null | head -15`
 - Uncommitted changes: !`git status --short 2>/dev/null | head -20`
 - Changed files vs base: !`git diff --name-only origin/HEAD..HEAD 2>/dev/null | head -30`

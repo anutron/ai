@@ -16,7 +16,7 @@ If no arguments provided, reply: `Usage: /fixit <describe the bug>` and stop.
 
 ## Context
 
-- Current branch: !`git branch --show-current`
+- Current branch: !`git branch --show-current 2>/dev/null || echo '(not in a git repo)'`
 - Project root: !`pwd`
 - Main repo root: !`git worktree list --porcelain 2>/dev/null | head -1 | sed 's/^worktree //'`
 - OpenSpec project: !`test -d openspec && echo "yes" || echo "no"`

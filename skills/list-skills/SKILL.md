@@ -13,7 +13,7 @@ Show a context-aware cheat sheet of available skills, highlighting the ones most
 - Global skills: !`ls -1 ~/.claude/skills/ 2>/dev/null | head -30`
 - Local skills: !`ls -1 .claude/skills/ 2>/dev/null | head -30`
 - Current repo: !`git rev-parse --show-toplevel 2>/dev/null | xargs basename 2>/dev/null | head -1`
-- Branch: !`git branch --show-current`
+- Branch: !`git branch --show-current 2>/dev/null || echo '(not in a git repo)'`
 - Git status: !`git status --short 2>/dev/null | head -15`
 - Recent commits: !`git log --oneline -5 2>/dev/null | head -5`
 - Open PRs on this repo: !`gh pr list --limit 3 --state open 2>/dev/null | head -5`

@@ -17,7 +17,7 @@ Analyze recent changes, run targeted tests, identify coverage gaps, and optional
 - Project type: !`find . -maxdepth 1 \( -name go.mod -o -name Gemfile -o -name package.json -o -name Cargo.toml -o -name pyproject.toml -o -name setup.py -o -name requirements.txt -o -name pom.xml -o -name build.gradle -o -name Makefile \) 2>/dev/null | head -5`
 - Changed files: !`git diff --name-only HEAD~1 2>/dev/null | head -50`
 - Test files: !`find . -maxdepth 4 \( -name "*_test.*" -o -name "*.test.*" -o -name "*_spec.*" -o -name "test_*" \) 2>/dev/null | head -20`
-- Git status: !`git status --short`
+- Git status: !`git status --short 2>/dev/null || echo '(not in a git repo)'`
 
 ## Instructions
 

@@ -31,7 +31,7 @@ When invoked programmatically from another skill, the caller passes `{artifact, 
 
 - OpenSpec project: !`test -d openspec && echo "yes" || echo "no openspec/ dir"`
 - Active changes: !`openspec list --changes 2>/dev/null | head -10`
-- Current branch: !`git branch --show-current 2>/dev/null`
+- Current branch: !`git branch --show-current 2>/dev/null || echo '(not in a git repo)'`
 - Existing capability specs (for example references): !`openspec list --specs 2>/dev/null | head -10`
 
 ---
