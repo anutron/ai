@@ -1,3 +1,19 @@
+## v1.29.0 — 2026-05-25
+
+Closes the gap where `/execute-plan` runs all the way through `openspec archive` and then `/ralph-review` errors out because no active change exists. Ralph-review now reviews against archived deltas in place, and `/execute-plan` always tells you whether quality gates ran.
+
+**ralph-review: archived-change mode**
+- Phase 0b adds detection for recently-archived changes. When the diff between `BASE...HEAD` touches `openspec/changes/archive/<name>/`, ralph reads deltas from the archive in place — no un-archive, no git-state churn.
+- Confidence tier stays at `spec` (archived deltas are the authoritative contract for what the change should have done). Base specs at `openspec/specs/<cap>/spec.md` provide post-merge context.
+- `[SPEC-DRIFT]` findings surface as `[QUESTION]` in archived mode — archives are immutable history; resolution requires creating a follow-up change or editing base specs, both of which need user judgment.
+- Updated failure handling and graceful-degradation tables to document the new path.
+
+**execute-plan: always report quality-gate status**
+- Reordered so Phase 5 (quality gate offer) runs before Phase 6 (summary), and the summary template includes a mandatory `Quality gates` section reporting each gate as `ran | skipped by user | not offered (auto mode) — invoke /<skill>`.
+- In auto/non-interactive runs the Phase 5 offer is skipped silently as before, but the summary now explicitly tells the user neither gate ran, so they know downstream review is still their responsibility.
+
+---
+
 ## v1.28.0 — 2026-05-25
 
 Adds a `--pre-archive` mode to `spec-audit` that previews coverage as if a named active OpenSpec change had already been archived, and hardens 20 skills against being loaded from a non-git CWD.

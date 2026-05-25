@@ -10,6 +10,8 @@ Autonomous self-review loop that runs after implementation. Reviews the full dif
 
 The review target is the **active OpenSpec change's delta specs**. Ralph compares the diff against the deltas under `openspec/changes/<active>/specs/<capability>/spec.md`. The base specs at `openspec/specs/<capability>/spec.md` provide context for what already exists; the deltas are the contract for what *this change* should do.
 
+If the diff being reviewed corresponds to a change that has already been archived (common when `/execute-plan` ran end-to-end and archived before the user invoked review), ralph runs in **archived-change mode** and reads deltas from `openspec/changes/archive/<dated-name>/specs/<capability>/spec.md` in place. Archives are immutable; drift findings surface as questions rather than auto-edits.
+
 ## Arguments
 
 - `$ARGUMENTS` – Optional: change name, SHA, branch name, commit range, or natural language description of what to review.
@@ -56,11 +58,12 @@ If the project has no `openspec/` directory, skip OpenSpec checks and run in **c
 
 Use the active-change inference heuristic, in order, and stop at the first match:
 
-1. **`$ARGUMENTS` is a change name** (a directory exists at `openspec/changes/<arg>/`) → use it.
-2. **List active changes** via `openspec list --changes --json` (parses to `{changes: [{name, ...}]}`). If `openspec/changes/` does not exist, treat the result as `[]`.
-3. **Exactly one active change** → use it.
-4. **Multiple active changes** → read `git branch --show-current` and look for an exact match against any change `name`. Convention: branch name matches change name. If a match is found, use it.
-5. **Multiple changes, no branch match** → ask the user via `AskUserQuestion`:
+1. **`$ARGUMENTS` is an active change name** (a directory exists at `openspec/changes/<arg>/`, not under `archive/`) → use it as the active change.
+2. **`$ARGUMENTS` is an archived change name** (a directory exists at `openspec/changes/archive/<arg>/`) → use it in **archived-change mode** (see below).
+3. **List active changes** via `openspec list --changes --json` (parses to `{changes: [{name, ...}]}`). If `openspec/changes/` does not exist, treat the result as `[]`. Note: `openspec list` does not show archived changes.
+4. **Exactly one active change** → use it.
+5. **Multiple active changes** → read `git branch --show-current` and look for an exact match against any change `name`. Convention: branch name matches change name. If a match is found, use it.
+6. **Multiple changes, no branch match** → ask the user via `AskUserQuestion`:
 
    ```
    Multiple OpenSpec changes are in flight. Which one are you reviewing?
@@ -71,11 +74,24 @@ Use the active-change inference heuristic, in order, and stop at the first match
    ```
 
    Do not guess.
-6. **Zero active changes** → error out. Tell the user:
+7. **Zero active changes, but recently archived changes exist** → look for an archived change whose merge falls inside the diff scope. The conventional pattern: `execute-plan` runs `openspec archive`, which moves `openspec/changes/<name>/` → `openspec/changes/archive/<dated-name>/` and merges deltas into base specs.
+
+   Detection:
+
+   ```bash
+   # Find archive directories whose contents were touched between BASE and HEAD
+   git diff {BASE}...HEAD --name-only | grep -E '^openspec/changes/archive/[^/]+/' | sed -E 's|^openspec/changes/archive/([^/]+)/.*|\1|' | sort -u
+   ```
+
+   - **Exactly one archived change in scope** → use it in archived-change mode.
+   - **Multiple** → ask the user via `AskUserQuestion`. Always include "None of these — fall through to /review" as the last option.
+   - **Zero in scope, but `openspec/changes/archive/` is non-empty** → list the 3 most recently archived (by mtime) and ask the user whether any of them is the intended target, plus a "None — run /review instead" option.
+
+8. **Zero active changes and no archived match** → error out. Tell the user:
 
    ```
-   Ralph-review needs an active OpenSpec change to review against, but
-   openspec/changes/ is empty.
+   Ralph-review needs an active or recently-archived OpenSpec change to review
+   against, but none was found.
 
    Either:
      - Create a change first via /brainstorm or `openspec new change <name>`
@@ -84,6 +100,15 @@ Use the active-change inference heuristic, in order, and stop at the first match
    ```
 
    Stop. Do not start the loop.
+
+#### Archived-change mode
+
+When ralph-review runs against an archived change, the deltas live at `openspec/changes/archive/<dated-name>/specs/<capability>/spec.md` instead of `openspec/changes/<name>/specs/<capability>/spec.md`. Everything else is identical:
+
+- Confidence tier is still "spec" — archived deltas are the authoritative contract for what this change should have done.
+- Base specs at `openspec/specs/<capability>/spec.md` already include the merged result (archive happened), so they provide post-merge context.
+- All Phase 1 review logic uses the archived delta paths in place of the active delta paths.
+- **Spec drift in archived mode:** any `[SPEC-DRIFT]` finding means the implementation diverged from what the (now-archived) deltas described. Surface these as `[QUESTION]` instead — drift resolution against archived deltas requires either creating a new follow-up change or editing base specs, both of which need user judgment. Do not edit archived delta files; archives are immutable history.
 
 This heuristic is shared with `/save-w-specs`. If you change it in one skill, mirror it in the other.
 
@@ -250,7 +275,9 @@ DIFF SCOPE: {diff_scope_description}
 BASE: {base_ref}
 
 ACTIVE-CHANGE DELTAS (the contract for this change):
-{for each openspec/changes/<active>/specs/<cap>/spec.md, include path and full contents}
+{for each delta file, include path and full contents — paths are
+ openspec/changes/<active>/specs/<cap>/spec.md in active mode, or
+ openspec/changes/archive/<dated-name>/specs/<cap>/spec.md in archived mode}
 
 BASE SPECS (context — what existed before the change):
 {for each touched capability, include openspec/specs/<cap>/spec.md path and contents, or "N/A — new capability"}
@@ -888,7 +915,7 @@ When the work is completed (via `/fixit`, `/spec-todo`, or manual fix), delete t
 |---------|--------|
 | No changes to review | Tell user and stop |
 | `openspec validate --all --strict` fails in Phase 0a | Surface errors, stop, do not start the loop |
-| No active change in `openspec/changes/` | Error and stop (see Phase 0b step 6) |
+| No active change in `openspec/changes/` | Check for recently-archived match (Phase 0b step 7). If none, error and stop (step 8) |
 | Sub-agent fails to spawn | Retry once. If still fails, report error and stop |
 | Sub-agent returns empty/malformed report | Note in summary, exit loop, produce report with what we have |
 | Test suite fails to run | Note in report as increased risk, continue loop |
@@ -904,7 +931,8 @@ When the work is completed (via `/fixit`, `/spec-todo`, or manual fix), delete t
 |-----------|----------|
 | OpenSpec + active change with deltas + spec-recommender + spec-writer | Full experience: review, fix, drift resolution, delta production |
 | OpenSpec + active change with deltas only | Loop works fully. Drift reported, user writes deltas manually |
-| OpenSpec but no active change | Phase 0b errors out — user must create a change first or run `/review` |
+| OpenSpec + recently archived change matching diff scope | Archived-change mode: review against archived deltas in place; drift surfaces as [QUESTION] (archives are immutable) |
+| OpenSpec but no active or archived match | Phase 0b errors out — user must create a change first or run `/review` |
 | `tasks.md` only (no deltas) | Plan-advisory mode. No spec drift detection |
 | No openspec/ directory | Conservative mode. Auto-fixes only obvious bugs/security/lint |
 | No plannotator | Terminal report + GitHub PR option. No Plannotator annotation |

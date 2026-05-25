@@ -250,9 +250,28 @@ If the archive fails (e.g. validation errors when merging deltas), surface the e
 
 ---
 
-## Phase 5: Summary
+## Phase 5: Quality gates
 
-Produce one final report after archiving:
+After archiving, offer quality checks via `AskUserQuestion` (interactive mode only — skip the offer in auto/non-interactive runs):
+
+> "Change `<name>` archived. Want to run quality checks?"
+
+Options:
+
+- **Both** (recommended) — run `/ralph-review` and `/spec-audit` in parallel.
+- **Ralph-review only** — autonomous review loop comparing implementation against the archived deltas (ralph-review's archived-change mode kicks in automatically since the change is already archived).
+- **Spec-audit only** — audit spec coverage, find behavioral gaps post-archive.
+- **Done** — skip quality gates.
+
+These are token-heavy, so they are opt-in. But offering them at the natural completion point makes them easy to reach.
+
+Track the outcome — record for each gate whether it was **run**, **skipped by user**, or **not offered (auto mode)**. The Phase 6 summary reports these values explicitly so the user always knows what was and wasn't run.
+
+---
+
+## Phase 6: Summary
+
+Produce one final report after Phase 5 completes (whether quality gates ran or not):
 
 ```markdown
 ## Change Execution Complete
@@ -278,6 +297,11 @@ Produce one final report after archiving:
 
 {git log --oneline for all commits made during execution}
 
+### Quality gates
+
+- **ralph-review**: {ran | skipped by user | not offered (auto mode) — invoke `/ralph-review` to run now (uses archived-change mode against `<name>`)}
+- **spec-audit**: {ran | skipped by user | not offered (auto mode) — invoke `/spec-audit` to run now}
+
 ### Quality notes
 
 {Any DONE_WITH_CONCERNS observations, reviewer feedback worth noting}
@@ -287,22 +311,7 @@ Produce one final report after archiving:
 {Parked tasks with reasons, blockers that could not be resolved, semantic conflicts encountered}
 ```
 
----
-
-## Phase 6: Quality gates
-
-After presenting the summary report, offer quality checks via `AskUserQuestion`:
-
-> "Change `<name>` archived. Want to run quality checks?"
-
-Options:
-
-- **Both** (recommended) — run `/ralph-review` and `/spec-audit` in parallel.
-- **Ralph-review only** — autonomous review loop comparing implementation against the merged base specs.
-- **Spec-audit only** — audit spec coverage, find behavioral gaps post-archive.
-- **Done** — skip quality gates.
-
-These are token-heavy, so they are opt-in. But offering them at the natural completion point makes them easy to reach.
+**The Quality gates section is mandatory** — always include it, even when both gates ran cleanly or both were skipped. It is the user's only signal in auto mode that downstream review is still their responsibility.
 
 ---
 
@@ -319,7 +328,7 @@ Once execution starts (Phases 1-4), the controller never asks the user anything.
   3. Break the task into smaller pieces.
   4. Park the task and note it in the final report. Do not auto-archive a change with parked tasks — surface them and let the user decide.
 
-One summary at the end. No mid-execution interruptions — except the quality gate offer after the summary (see Phase 6).
+One summary at the end. No mid-execution interruptions — except the quality gate offer after archival (Phase 5). In auto/non-interactive runs the offer is skipped silently; the Phase 6 summary still reports both gates as **not offered (auto mode)** so the user knows to invoke them manually.
 
 ## Model selection
 
