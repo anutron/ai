@@ -1,3 +1,22 @@
+## v1.27.0 — 2026-05-25
+
+Adds `op-secret`, a tiny shell helper for lazily loading API tokens from 1Password into the current shell session. Also catches up the skills catalog with everything added since v1.26.0 and publishes a previously-untracked diagnostic script.
+
+**New shell helper**
+- **`bin/op-secret.sh`** — sourceable zsh function (`secret VAR_NAME`) that reads from `op://claude/shell-env/<VAR>` on first request and caches the value in the shell's env for the rest of the session. Zero shell-startup cost, no secrets on disk.
+- **`docs/op-secret.md`** — install + usage doc covering the 1Password layout (one item, N custom fields), service-account setup, rotation, troubleshooting, and the bash port.
+- **README Extras** — new row alongside `statusline.sh` and `permissions-guide.md`.
+
+**Skills catalog regeneration**
+- Added entries for `anutron-install`, `anutron-uninstall`, `doitright`, `eli5`, `trust-action`, `trust-skills` (skills introduced since v1.26.0 but missing from the catalog).
+- Removed stale entries for `tp` (now lives only as a published binary at `bin/tp/`, not a skill) and `logo` (removed from the publishable set).
+- Pure spec skills (`spec-audit`, `spec-recommender`, `spec-todo`, `spec-writer`, `ralph-review`, `save-w-specs`, `plannotator-specs`) remain in `spec-driven-development.md` only, per the catalog's "this doc covers everything else" boundary.
+
+**Misc**
+- **`home/bin/mysqld-orphan-check.sh`** — diagnostic script that had landed in ai-ron but never published.
+
+---
+
 ## v1.26.0 — 2026-05-23
 
 Docs decomposition: the README becomes a recipe-style home page with six topic-doc cards, each illustrated. Plus accumulated skill, rule, and infrastructure updates from ai-ron.
