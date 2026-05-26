@@ -1,3 +1,18 @@
+## v1.30.0 — 2026-05-26
+
+Claude Code's static analyzer flags inline `$(...)`, backticks, and heredocs in Bash as "Contains shell syntax that cannot be statically analyzed" — and that flag bypasses `settings.json` allowlists, so users see a permission prompt every invocation. `/close-worktree` was breaking on a context-line `$(git worktree list ...)` substitution. `/bugbash` had the same anti-pattern.
+
+**Fix: extract shell context into helper scripts**
+
+- `/close-worktree`: 7 inline `!`-prefixed context queries (including two `$(...)` substitutions) collapsed into a single call to `home/bin/close-worktree-context.sh`.
+- `/bugbash`: the `for d in todo in-progress ...; do files=$(find ...)` inventory line moved into `home/bin/bugbash-inventory.sh`.
+- Both helpers are symlinked from `~/.claude/bin/` by `/setup`, matching the existing convention used for `set-session-topic.sh`, `html-to-text.sh`, etc.
+
+**docs/skills-catalog.md**
+- Refreshed `trust-action` and `trust-skills` rows to match their current SKILL.md frontmatter descriptions (catalog had stale first-sentence-only versions).
+
+---
+
 ## v1.29.0 — 2026-05-25
 
 Closes the gap where `/execute-plan` runs all the way through `openspec archive` and then `/ralph-review` errors out because no active change exists. Ralph-review now reviews against archived deltas in place, and `/execute-plan` always tells you whether quality gates ran.

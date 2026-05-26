@@ -30,7 +30,7 @@ If agent teams are not enabled, report: "Agent teams required. Add `CLAUDE_CODE_
 - Git status: !`git status --short 2>/dev/null || echo '(not in a git repo)'`
 - Project root: !`pwd`
 - OpenSpec project: !`test -d openspec && echo "yes" || echo "no"`
-- Existing bugs: !`for d in todo in-progress blocked merged verified failed conflict; do files=$(find .bug-bash/$d -name 'bug-*.md' 2>/dev/null); [ -n "$files" ] && echo "[$d]" && echo "$files"; done; true`
+- Existing bugs: !`~/.claude/bin/bugbash-inventory.sh`
 
 ---
 
