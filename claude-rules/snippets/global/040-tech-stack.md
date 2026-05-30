@@ -2,9 +2,9 @@
 tags: [personal]
 audience: [aaron]
 ---
-## Tech Stack Spectrum
+## Tech stack spectrum
 
-New applications follow the **stack spectrum** defined in `{{PROJECT_DIR}}/docs/stack-spectrum.md`. Four web tiers plus a CLI track — pick the lightest that fits:
+New apps follow the spectrum at `{{PROJECT_DIR}}/docs/stack-spectrum.md`. Pick the lightest tier that fits:
 
 | Tier | When to use | Stack |
 |------|-------------|-------|
@@ -14,18 +14,8 @@ New applications follow the **stack spectrum** defined in `{{PROJECT_DIR}}/docs/
 | **Deployable** | Production app for other users | Rails + Next.js monorepo |
 | **CLI** | Terminal-first tool | Go + Cobra (+ Bubbletea for TUI) |
 
-### Quick decision guide
+Going from personal/distributed to deployable is a rebuild, not an upgrade – start fresh with the deployable blueprint.
 
-- **Terminal-first interaction?** → CLI (Go + Cobra).
-- **Need a database?** No → Lightweight. Yes → Personal or higher.
-- **Need shared data across devices?** → Distributed.
-- **Other people will use it?** → Deployable.
-- **Going from personal/distributed to deployable?** That's a rebuild, not an upgrade. Start fresh with the deployable blueprint.
+Legacy apps (`fitbit-cli`, `gmail-mcp`, `things-mcp`) stay on their existing stacks – don't migrate.
 
-### Legacy applications
-
-Existing apps (`fitbit-cli`, `gmail-mcp`, `things-mcp`) use their existing stacks. When modifying legacy apps, follow existing patterns — do not migrate them.
-
-### MCP servers
-
-Node.js/TypeScript (MCP SDK is Node-native). These don't fit neatly into the web app spectrum — they're their own thing.
+MCP servers: Node.js/TypeScript (SDK is Node-native); outside the web spectrum.

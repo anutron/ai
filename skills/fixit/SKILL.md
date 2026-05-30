@@ -20,6 +20,7 @@ If no arguments provided, reply: `Usage: /fixit <describe the bug>` and stop.
 - Project root: !`pwd`
 - Main repo root: !`git worktree list --porcelain 2>/dev/null | head -1 | sed 's/^worktree //'`
 - OpenSpec project: !`test -d openspec && echo "yes" || echo "no"`
+- Sandbox mode: !`~/.claude/bin/sandbox-probe.sh`
 
 ---
 
@@ -34,6 +35,11 @@ You are a dispatcher, not a debugger. Do NOT read source code or investigate.
 - If the description is ambiguous, echo back a 1-line interpretation and proceed — don't block on clarification
 
 ### 2. Create Worktree
+
+**Sandbox-mode branch.** Check the `Sandbox mode:` value from the Context block.
+
+- If `sandbox`: read `skills/agent-driven-development/sandbox-mode.md` and follow Tier 1 (host task-spawning) or Tier 2 (staged-command) instead of running `git worktree add` from this session. After dispatching via the sandbox path, skip to step 4 (Confirm to User). The `On Agent Completion` section below also defers to sandbox-mode.md for the merge and (if OpenSpec) archive paths.
+- If `ok`: continue with the steps below as normal.
 
 Resolve the main repo root first — fixit may be invoked from inside a worktree. Worktrees must be created relative to the main repo, never nested inside another worktree.
 
@@ -141,6 +147,8 @@ Do NOT wait for the agent. Return control to the user immediately.
 ---
 
 ## On Agent Completion
+
+**Sandbox-mode branch.** If dispatch ran in sandbox mode (per step 2), the worker is either a host-spawned task or a user-driven shell session — in both cases the calling session cannot run `git merge` against MAIN_REPO. Follow Tier 3 (post-implementation merge) and, for OpenSpec projects, the async verify-then-archive section of `skills/agent-driven-development/sandbox-mode.md`. The two-stage review below still runs (read against the worker's pushed branch); only the merge and archive steps change.
 
 When the background agent reports back:
 

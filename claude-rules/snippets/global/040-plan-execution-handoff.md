@@ -4,12 +4,12 @@ audience: [shared]
 ---
 ## Plan execution handoff
 
-After a plan is approved via `ExitPlanMode`, always:
+After a plan is approved via `ExitPlanMode`:
 
-1. If the project uses OpenSpec (`test -d openspec`), the plan should already live as `openspec/changes/<name>/tasks.md` — confirm the change folder is committed before handing off.
-2. Show the execute command using the change NAME (not a path): `/execute-plan <name>`.
-3. Use `AskUserQuestion` to ask how the user wants to proceed, with these two options:
-   - **Execute in this session** — Run `/execute-plan` right here without clearing context (good for small plans or when current context is valuable).
-   - **Copy to clipboard** (recommended) — Copy the `/execute-plan <name>` command to clipboard (`echo -n "/execute-plan <name>" | pbcopy`) and tell the user to run `/clear` and paste. Claude cannot execute `/clear` itself — it is a CLI command only the user can invoke.
+1. If OpenSpec (`test -d openspec`), confirm `openspec/changes/<name>/tasks.md` is committed.
+2. Show: `/execute-plan <name>` (use the change NAME, not a path).
+3. `AskUserQuestion` with two options:
+   - **Execute in this session** – run `/execute-plan` here without clearing context.
+   - **Copy to clipboard** (recommended) – `echo -n "/execute-plan <name>" | pbcopy`, then tell the user to run `/clear` and paste. Claude cannot execute `/clear` itself – only the user can.
 
-**Plannotator-approved plans:** This same handoff fires automatically when a plan is approved via Plannotator (`/plannotator-specs` or `plannotator annotate`). The instructions are embedded in the approval message itself, configured at `{{PROJECT_DIR}}/configs/plannotator.json` (symlinked to `~/.plannotator/config.json`). Edit the JSON if the handoff steps change.
+**Plannotator-approved plans:** same handoff fires automatically, configured at `{{PROJECT_DIR}}/configs/plannotator.json` (symlinked to `~/.plannotator/config.json`).

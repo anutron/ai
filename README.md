@@ -92,7 +92,7 @@ See [docs/claude-code-recipes/](docs/claude-code-recipes/00-overview.md).
 |------|-------------|
 | [docs/permissions-guide.md](docs/permissions-guide.md) | Recommended permission rules – reduce nagging, protect sensitive files, block destructive commands |
 | [docs/stack-spectrum.md](docs/stack-spectrum.md) | Tech stack tiers from lightweight to deployable – picking the right size for the job |
-| [docs/op-secret.md](docs/op-secret.md) | Lazy 1Password loader for shell env vars – zero startup cost, no secrets on disk ([bin/op-secret.sh](bin/op-secret.sh)) |
+| [docs/handling-api-keys.md](docs/handling-api-keys.md) | Best practice for API keys – keep them in a vault (1Password or macOS Keychain), never on disk or in git. Covers the [op-secret.md](docs/op-secret.md) 1Password loader ([bin/op-secret.sh](bin/op-secret.sh)) |
 | [bin/statusline.sh](bin/statusline.sh) | Custom Claude Code status line – git status, session topic, terminal title |
 
 ---

@@ -30,6 +30,7 @@ If agent teams are not enabled, report: "Agent teams required. Add `CLAUDE_CODE_
 - Git status: !`git status --short 2>/dev/null || echo '(not in a git repo)'`
 - Project root: !`pwd`
 - OpenSpec project: !`test -d openspec && echo "yes" || echo "no"`
+- Sandbox mode: !`~/.claude/bin/sandbox-probe.sh`
 - Existing bugs: !`~/.claude/bin/bugbash-inventory.sh`
 
 ---
@@ -261,6 +262,8 @@ Keep it short — the user wants to keep reporting bugs, not read paragraphs.
 
 ## Dispatching an Agent
 
+**Sandbox-mode branch.** Check the `Sandbox mode:` value from the Context block. If `sandbox`, read `skills/agent-driven-development/sandbox-mode.md` and use the sandbox-mode dispatch path (Tier 1 host task-spawning or Tier 2 staged-command) instead of `git worktree add` from this session. The per-bug status moves (`mv todo → in-progress`, etc.) still apply – sandbox mode only changes how the worker worktree is created and how merges land. The `On Agent Completion` section below also defers to sandbox-mode.md for the merge and (if OpenSpec) archive paths.
+
 When dispatching a bug to an agent:
 
 ### Move to in-progress
@@ -404,6 +407,8 @@ Before committing, append these sections to the bug file:
 ---
 
 ## On Agent Completion
+
+**Sandbox-mode branch.** If dispatch ran in sandbox mode, the calling session cannot `git merge` into MAIN_REPO. Follow Tier 3 (post-implementation merge) and, for OpenSpec projects, the async verify-then-archive section of `skills/agent-driven-development/sandbox-mode.md`. Bug-status moves still happen here; only the merge and archive steps are staged for the user. The `merged/` move only fires once the user confirms they ran the staged merge command (or the worker reports `status: archived` for the OpenSpec async path).
 
 When a background agent reports back:
 

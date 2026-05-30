@@ -132,6 +132,10 @@ The following prompt templates define agent behavior. The controller provides ta
 - `./spec-reviewer-prompt.md` -- spec compliance reviewer instructions
 - `./code-quality-reviewer-prompt.md` -- code quality reviewer instructions
 
+## Sandbox-aware dispatch
+
+When the calling session runs from inside a sandboxed worktree (cannot write to MAIN_REPO at the OS layer), the normal `git worktree add` + `git merge` flow fails. `./sandbox-mode.md` defines a graceful degradation that auto-detects sandbox mode via `~/.claude/bin/sandbox-probe.sh` and falls back to host task-spawning, staged-command, or async verify-then-archive paths. Skills like /fixit and /bugbash reference it from their dispatch and on-completion sections.
+
 ## Red Flags
 
 Never:

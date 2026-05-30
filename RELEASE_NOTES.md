@@ -1,3 +1,24 @@
+## v1.31.0 — 2026-05-30
+
+**New skill: `bash-style`**
+
+- A reference skill cataloguing the bash patterns that trip Claude Code's permission guardrails (`cd <repo> && git ...`, `$(...)`, backticks, heredocs, inline `-c`/`-e` interpreters, multi-line shell), the safety rules for path-based allowlisting, and the `git -C` known gap.
+- `user_invocable: false` — loaded by reference from other skills. Added to the skills catalog under "Discipline and orchestration".
+
+**Sandbox-aware `/fixit` and `/bugbash`**
+
+- `agent-driven-development` gains a `sandbox-mode.md` reference plus a `home/bin/sandbox-probe.sh` helper, so `/fixit` and `/bugbash` detect a sandboxed environment and dispatch their worktree agents accordingly.
+
+**Global CLAUDE.md snippet trims**
+
+- Trimmed several global snippets (claudemd-management, plan-formatting, interaction-prefs, tech-stack, bash-command-style, worktree-location, session-topics, plannotator-spec-review, testing, spec-driven-dev, openspec-migration). The bash-command-style snippet now points at the new `bash-style` skill instead of inlining the detail.
+
+**Docs**
+
+- New `docs/handling-api-keys.md`; security recipe and README touch-ups.
+
+---
+
 ## v1.30.0 — 2026-05-26
 
 Claude Code's static analyzer flags inline `$(...)`, backticks, and heredocs in Bash as "Contains shell syntax that cannot be statically analyzed" — and that flag bypasses `settings.json` allowlists, so users see a permission prompt every invocation. `/close-worktree` was breaking on a context-line `$(git worktree list ...)` substitution. `/bugbash` had the same anti-pattern.

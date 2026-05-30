@@ -132,6 +132,8 @@ Never put API keys, tokens, passwords, or secrets directly in code files, script
 - **Acceptable:** `.env` files (with `.env` in `.gitignore`) or shell exports, when a secret manager is impractical
 - **Never:** hardcoded inline strings, or committing a key into a teammate's repo to "help them get started"
 
+For a concrete walkthrough of vault-based key handling – 1Password service accounts, macOS Keychain, and what to do when a key leaks – see [Handling API keys](../handling-api-keys.md).
+
 If you accidentally commit a credential: rotate it immediately, then notify your security owner. Rotation first, investigation second.
 
 #### Rule 4: Human review for consequential write operations

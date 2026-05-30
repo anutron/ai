@@ -26,6 +26,7 @@ These skills describe how agents should think and work. They're loaded by refere
 | Skill | Description |
 |-------|-------------|
 | [agent-driven-development](../skills/agent-driven-development/SKILL.md) | Use when executing implementation plans with independent tasks — orchestration pattern for worktree isolation, TDD discipline, and two-stage review. Referenced by execute-plan, fixit, and bugbash. |
+| [bash-style](../skills/bash-style/SKILL.md) | Reference for bash patterns that trigger Claude Code permission guardrails (static-analysis flags that allowlist rules cannot silence). Load when about to run bash with `cd <repo> && git ...`, `$(...)`, backticks, heredocs, inline `python3 -c` / `node -e` / `ruby -e` / `perl -e`, multi-line shell logic with variables/conditionals, or before allowlisting a new script path. Also covers always-prompt verbs and the `git -C` known gap. |
 | [test-driven-development](../skills/test-driven-development/SKILL.md) | Use when implementing any feature or bugfix, before writing implementation code |
 | [verification-before-completion](../skills/verification-before-completion/SKILL.md) | Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always |
 
