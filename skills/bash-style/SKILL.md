@@ -44,6 +44,22 @@ git commit -m "Title" -m "Body line 1" -m "Body line 2"
 
 Write to `/tmp/claude-commit-msgs/<repo>-<unix-timestamp>.txt` (collision-proof across parallel sessions), then `git commit -F <path>`. `Write(/tmp/claude-commit-msgs/**)` is globally allowlisted. Append `-<pid>` if you need sub-second uniqueness. The directory is OS-managed scratch; `find -mtime +7 -delete` for cleanup.
 
+## Avoid subshells `( ... )` in skill `!`dynamic-context`` lines — extract to a script
+
+A skill's `## Context` block runs each `` !`command` `` line at load time. A parenthesized **subshell** is flagged *"shell operators that require approval for safety"* — same unanalyzable-syntax bucket as `$(...)`. Allowlist rules cannot silence it, so the skill errors before it even starts.
+
+Plain `&&` / `||` chains are fine (`test -d openspec && echo yes || echo no` passes). Only the subshell group `( ... )` (and `$(...)`, backticks, heredocs) trips it.
+
+```markdown
+<!-- Bad — subshell to combine commands with a fallback -->
+- Repo status: !`(git -C ~/repo status -s && echo "---" && git -C ~/repo log --oneline -3) || echo "(missing)"`
+
+<!-- Good — extract to a tracked, allowlistable script -->
+- Repo status: !`~/.claude/bin/repo-status.sh`
+```
+
+The script can use whatever bash it needs internally — only the command Claude invokes (the bare script path) is analyzed. Allowlist both the literal `~/`-form and the absolute form, since the matcher does not tilde-expand.
+
 ## Avoid inline multi-line scripts — put logic in a script file
 
 If a task needs shell logic with variables, conditionals, or loops, **put it in a script file** under `.claude/bin/` (project) or `~/.claude/bin/` (global) and invoke that file with a simple command form. Allowlist the script path once and it never prompts again.

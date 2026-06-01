@@ -47,7 +47,7 @@ You do NOT investigate yourself. You formulate hypotheses, assign them, moderate
 
 ## Phase 0: Setup
 
-1. **Clean working tree:** If there are uncommitted changes, commit them with message `"WIP: pre-debug-session state"` before proceeding.
+1. **Clean working tree:** If there are uncommitted changes, do **not** silently commit them. Stash so the tree is clean for bisecting and the user's work is preserved: `git stash push -u -m "pre-debug-session"` (restore with `git stash pop` after the session).
 
 2. **Analyze the problem** from `$ARGUMENTS` and the context above.
 
@@ -167,7 +167,7 @@ ROOT CAUSE CONFIRMED: {description}
 
 Implement a fix. Keep it minimal -- fix the bug, nothing more.
 Run any related tests to verify.
-When done, message me with your changes.
+When done, message me with your changes. Do not commit — the fix is committed only after the user reviews and approves it.
 ```
 
 3. **Send verification request to the second investigator:**

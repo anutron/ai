@@ -10,19 +10,21 @@ Uploads local image files directly to Notion using their file upload API, then a
 
 ## Prerequisites
 
-- `NOTION_API_KEY` environment variable — a Notion integration token
+- `NOTION_API_KEY` — a Notion integration token, stored in 1Password and fetched at runtime via `secret NOTION_API_KEY` (never hardcoded or written to a shell profile)
 - The integration must have access to the target page/database (shared via Notion's "Connect to" menu)
 - `curl` and `python3` available in the shell
 
 ### One-Time Setup
 
-If `NOTION_API_KEY` is not set:
+If `secret NOTION_API_KEY` returns nothing:
 
 1. Go to [https://www.notion.so/my-integrations](https://www.notion.so/my-integrations)
 2. Create a new integration (name it anything, e.g. "Claude Code")
-3. Copy the "Internal Integration Secret" (starts with `ntn_`)
-4. Add to your shell profile: `export NOTION_API_KEY="ntn_..."`
+3. Copy the "Internal Integration Secret" (a Notion integration token)
+4. Store it in 1Password as the `NOTION_API_KEY` field of the `shell-env` item (vault `claude`), so `secret NOTION_API_KEY` returns it — never paste it into a shell profile or any file
 5. In Notion, open the target database/page → click `...` → "Connect to" → select your integration
+
+Recipes below read `$NOTION_API_KEY`; populate it for the session with `export NOTION_API_KEY="$(secret NOTION_API_KEY)"`.
 
 ## Usage
 

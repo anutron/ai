@@ -30,7 +30,7 @@ If agent teams are not enabled, report: "Agent teams required. Add `CLAUDE_CODE_
 - Git status: !`git status --short 2>/dev/null || echo '(not in a git repo)'`
 - Project root: !`pwd`
 - OpenSpec project: !`test -d openspec && echo "yes" || echo "no"`
-- Sandbox mode: !`~/.claude/bin/sandbox-probe.sh`
+- Sandbox mode: !`~/.claude/bin/repo-writable-check.sh`
 - Existing bugs: !`~/.claude/bin/bugbash-inventory.sh`
 
 ---
@@ -345,11 +345,11 @@ The capability name is usually apparent from the bug description, the affected f
 3. Commit with `--no-verify` (the pre-commit hook gates on active-change deltas; drift fixes have no spec change to record). Note in the commit message that this is a drift fix, e.g. "Fix BUG-<NNN>: restore behavior to match existing spec".
 
 **Step 2b – Spec gap path:**
-1. Scaffold a change folder: `openspec new change fix-bug-<NNN>`
-2. Write a delta at `openspec/changes/fix-bug-<NNN>/specs/<capability>/spec.md` that adds or modifies the relevant requirement and scenario.
+1. Check for an active change first: run `openspec list`. If an unarchived change already covers this capability/area, add your delta to *that* change's folder instead of scaffolding a new one — don't fragment one body of work across two change folders. Only if none is relevant, scaffold: `openspec new change fix-bug-<NNN>`.
+2. Write a delta under the chosen change folder at `specs/<capability>/spec.md` that adds or modifies the relevant requirement and scenario.
 3. Write or update a failing test that reproduces the bug.
 4. Implement the fix to pass the test.
-5. Run `openspec validate fix-bug-<NNN> --strict` before committing.
+5. Run `openspec validate <change-name> --strict` before committing.
 6. Include all delta and code files in the commit: "Fix BUG-<NNN>: <title>"
 
 **Either path:** include spec delta files (if any) alongside the code in the commit.
@@ -408,7 +408,7 @@ Before committing, append these sections to the bug file:
 
 ## On Agent Completion
 
-**Sandbox-mode branch.** If dispatch ran in sandbox mode, the calling session cannot `git merge` into MAIN_REPO. Follow Tier 3 (post-implementation merge) and, for OpenSpec projects, the async verify-then-archive section of `skills/agent-driven-development/sandbox-mode.md`. Bug-status moves still happen here; only the merge and archive steps are staged for the user. The `merged/` move only fires once the user confirms they ran the staged merge command (or the worker reports `status: archived` for the OpenSpec async path).
+**Sandbox-mode branch.** If dispatch ran in sandbox mode, the calling session cannot merge into MAIN_REPO's default branch — but if it is itself on a feature branch, it CAN land the fix by merging the worker's branch into that branch locally (the worktree is writable). Follow Tier 3 (landing the fix) of `skills/agent-driven-development/sandbox-mode.md`, which handles both the local-merge and staged-merge cases, and for OpenSpec projects the async verify-then-archive section. Bug-status moves still happen here. The `merged/` move fires once the fix is landed locally, once the user confirms they ran the staged merge command, or once the worker reports `status: archived` for the OpenSpec async path.
 
 When a background agent reports back:
 

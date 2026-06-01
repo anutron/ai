@@ -39,7 +39,7 @@ Print a short "Relevant Now" section (3-6 skills max) based on the work context.
 
 - Uncommitted changes on a branch? Suggest: /guard, /review, /pr, /merge
 - In the middle of building something? Suggest: /dev, /test, /debug
-- Open PR waiting for CI? Suggest: /pr, /pr-dashboard
+- Open PR waiting for CI? Suggest: /pr
 - Long session with lots of work? Suggest: /improve, /handoff, /changelog
 - On main with no changes? Suggest: /dev, /pr-dashboard
 - Working on skills? Suggest: /write-skill, /promote, /steal
@@ -61,7 +61,7 @@ OTHER SKILLS
 
   Development:  /debug  /test  /guard
   Review:       /review  /rereview  /devils-advocate
-  Git & PR:     /pr  /merge  /changelog  /pr-dashboard
+  Git & PR:     /pr  /merge  /changelog
   Session:      /handoff  /improve  /promote  /list-skills
   Creation:     /logo  /write-skill
   Personal:     /steal  (plus any project-specific skills installed locally)

@@ -1,3 +1,26 @@
+## v1.32.0 — 2026-06-01
+
+**Sandbox-aware `/fixit` and `/bugbash`: landing-tier and OpenSpec routing fixes**
+
+Field feedback from running `/fixit` inside a sandboxed worktree surfaced five gaps, all now fixed in `agent-driven-development/sandbox-mode.md`, `fixit`, and `bugbash`:
+
+- **Base ref** – a task-spawning host now branches the worker off the calling session's current (often stacked) feature branch instead of the default branch, so fixes stack against the code that actually has the bug.
+- **Landing tiers reworked** – Tier 3 now splits into Case A (caller on a feature branch → local merge into the writable worktree, no staging) and Case B (caller on main → host PR/merge helper or staged command).
+- **Host git/PR helper detection** – a new host-agnostic capability (matched by tool shape, no host names) is preferred over clipboard staging for push/PR/merge landing steps.
+- **Completion signaling** – removed the inaccurate "you'll be notified" claim; the worker now signals completion over the coordination channel, or the caller is explicitly told to poll.
+- **OpenSpec change routing** – spec-gap fixes now route their delta into an active in-flight change rather than always scaffolding a new `fix-<slug>` folder.
+
+**Retired skills removed**
+
+- Deleted `disk-cleanup`, `mcp-prune`, `pr-dashboard`, and `software-best-practices` from the kit and the skills catalog.
+
+**Misc**
+
+- Renamed `home/bin/sandbox-probe.sh` → `repo-writable-check.sh`; added `publish-target-status.sh`.
+- Smaller updates to `anutron-install`, `anutron-uninstall`, `bash-style`, `debug`, `handoff`, `improve`, `kickoff`, `list-skills`, `migrate-to-openspec`, `plannotator-specs`, `upload-notion-image`, and the worktree-location rule snippet.
+
+---
+
 ## v1.31.0 — 2026-05-30
 
 **New skill: `bash-style`**

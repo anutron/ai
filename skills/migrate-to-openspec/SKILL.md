@@ -1,6 +1,7 @@
 ---
 name: migrate-to-openspec
-description: Convert a legacy AI-RON spec project (`.specs` file + `specs/*.md`) to OpenSpec layout with verifiable fidelity. One-time per project. Translator + verifier agents preserve every Given/When/Then case as an OpenSpec scenario, archive originals at `.workflow/legacy-specs/`, and install the new pre-commit hook + CLAUDE.md snippets.
+description: Use when a project has legacy AI-RON specs (a `.specs` file or top-level `specs/*.md`) but no `openspec/` directory and the user wants spec work. Convert a legacy AI-RON spec project (`.specs` file + `specs/*.md`) to OpenSpec layout with verifiable fidelity. One-time per project. Translator + verifier agents preserve every Given/When/Then case as an OpenSpec scenario, archive originals at `.workflow/legacy-specs/`, and install the new pre-commit hook + CLAUDE.md snippets.
+disable-model-invocation: true
 tags: [spec]
 ---
 
@@ -116,6 +117,8 @@ When `migrate.sh run --auto-accept` is invoked, Phase 3 auto-accepts every clean
 - `migrate.sh resolve <capability> --action accept|retry|skip` — record the orchestrator's decision before invoking `migrate.sh execute`.
 
 ## Phase 4: Execution
+
+**Confirm before executing.** This phase rewrites the repo layout (moves specs into `openspec/`, archives then deletes the original `.specs`, and commits) — show the user what will change and get explicit approval before running. It is transactional (rolls back to the `pre-openspec-migration` tag if `openspec validate` fails), but get the go-ahead first.
 
 After resolution, `migrate.sh execute` (or the tail of `migrate.sh run`) writes the new layout, validates it, and commits everything as one migration commit. The implementation is in `_execute()` in `migrate.sh`; the steps are:
 

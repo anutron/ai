@@ -22,7 +22,6 @@ Run `/improve` at the end of any session where:
 
 - Current repo: !`git rev-parse --show-toplevel 2>/dev/null | head -1`
 - Skills directory: !`find .claude/skills -maxdepth 2 -name SKILL.md 2>/dev/null | head -30`
-- Recent observations: !`echo "SELECT category, observation, confidence FROM observations ORDER BY created_at DESC LIMIT 5" | head -5`
 
 ## Instructions
 

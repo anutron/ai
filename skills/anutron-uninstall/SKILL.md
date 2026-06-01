@@ -1,6 +1,7 @@
 ---
 name: anutron-uninstall
 description: Uninstall the anutron (claude-skills) kit from the current project — reverses everything /anutron-install did.
+disable-model-invocation: true
 tags: [personal]
 ---
 
@@ -9,6 +10,8 @@ tags: [personal]
 Reverses everything `/anutron-install` wrote into the current working directory. Reads `.anutron-install.json` (the breadcrumb) to know exactly what to undo. Mode-aware: behaviour differs based on how the original install was done.
 
 ## How to invoke
+
+**Confirm with the user before running** — this removes installed skills/hooks and edits `CLAUDE.md` and `.claude/settings.json`. Once confirmed:
 
 ```bash
 bash "$(dirname "$SKILL_PATH")/uninstall.sh"

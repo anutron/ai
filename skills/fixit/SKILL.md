@@ -20,7 +20,8 @@ If no arguments provided, reply: `Usage: /fixit <describe the bug>` and stop.
 - Project root: !`pwd`
 - Main repo root: !`git worktree list --porcelain 2>/dev/null | head -1 | sed 's/^worktree //'`
 - OpenSpec project: !`test -d openspec && echo "yes" || echo "no"`
-- Sandbox mode: !`~/.claude/bin/sandbox-probe.sh`
+- Active OpenSpec changes: !`test -d openspec && openspec list 2>/dev/null || echo '(n/a)'`
+- Sandbox mode: !`~/.claude/bin/repo-writable-check.sh`
 
 ---
 
@@ -79,6 +80,8 @@ Use the `Agent` tool with `run_in_background: true` and `mode: "bypassPermission
 <if openspec/ directory exists at the project root>
 This project uses OpenSpec.
 
+**Active OpenSpec change:** <from the `Active OpenSpec changes` Context value — name the in-flight change this fix most plausibly belongs to, or "none">. If one is named, add any spec delta to that change's folder rather than scaffolding a new one.
+
 **Classify the bug before writing any code:**
 
 - **Code drift** – the spec is correct; the code diverged from it.
@@ -94,9 +97,9 @@ This project uses OpenSpec.
 
 **Spec gap path:**
 1. Identify the capability name from the description, affected files, or failing test
-2. Scaffold a change folder: `openspec new change fix-<short-slug>`
-3. Write a delta at `openspec/changes/fix-<short-slug>/specs/<capability>/spec.md` that adds or modifies the relevant requirement and at least one scenario
-4. Validate: `openspec validate fix-<short-slug> --strict`
+2. Check for an active change FIRST: run `openspec list`. If an unarchived change already covers this capability/area (and especially if `Active OpenSpec change` was named in the Context above), add your delta to *that* change's folder — do not scaffold a new one. Fragmenting deltas for one body of work across two change folders is wrong. Only if no relevant active change exists, scaffold one: `openspec new change fix-<short-slug>`.
+3. Write a delta under the chosen change folder at `specs/<capability>/spec.md` that adds or modifies the relevant requirement and at least one scenario
+4. Validate: `openspec validate <change-name> --strict`
 5. Write a failing test that captures the new scenario
 6. Implement the fix to pass the test
 7. Run all tests
@@ -148,7 +151,7 @@ Do NOT wait for the agent. Return control to the user immediately.
 
 ## On Agent Completion
 
-**Sandbox-mode branch.** If dispatch ran in sandbox mode (per step 2), the worker is either a host-spawned task or a user-driven shell session — in both cases the calling session cannot run `git merge` against MAIN_REPO. Follow Tier 3 (post-implementation merge) and, for OpenSpec projects, the async verify-then-archive section of `skills/agent-driven-development/sandbox-mode.md`. The two-stage review below still runs (read against the worker's pushed branch); only the merge and archive steps change.
+**Sandbox-mode branch.** If dispatch ran in sandbox mode (per step 2), the worker is either a host-spawned task or a user-driven shell session. The calling session cannot merge into MAIN_REPO's default branch — but if it is itself on a feature branch, it CAN land the fix by merging the worker's branch into that branch locally (the worktree is writable). Follow Tier 3 of `skills/agent-driven-development/sandbox-mode.md`, which handles both the local-merge and staged-merge cases, and for OpenSpec projects the async verify-then-archive section. The two-stage review below still runs (read against the worker's pushed branch); only the landing and archive steps change.
 
 When the background agent reports back:
 

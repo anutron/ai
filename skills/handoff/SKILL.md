@@ -68,19 +68,6 @@ HANDOFF_EOF
 
 This ensures the handoff is immediately ready to paste into a new session without manual selection.
 
-### Step 3: Persist to Memory
+### Step 3: Persist to memory (optional)
 
-Also save a summary observation to the memory system so this context survives beyond the clipboard. Use the memory-query MCP tool to insert an observation:
-
-```sql
-INSERT INTO observations (category, observation, confidence, supporting_data, created_at)
-VALUES (
-  'session-handoff',
-  '[1-2 sentence summary of what was handed off]',
-  0.9,
-  '{"branch": "[branch]", "repo": "[repo]", "remaining_items": [count], "key_files": ["file1", "file2"]}',
-  NOW()
-);
-```
-
-This ensures the handoff context is recoverable even if the clipboard is lost.
+If a persistent memory system is available in this session, save a one- or two-sentence summary of the handoff (branch, repo, remaining items, key files) so the context survives beyond the clipboard. Skip this step if no memory system is present — the clipboard copy from Step 2 is the primary deliverable.

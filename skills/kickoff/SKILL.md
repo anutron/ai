@@ -1,7 +1,7 @@
 ---
 name: kickoff
 description: "Use when starting a brand new project from scratch -- runs discovery, picks a tech stack tier, then hands off to brainstorm and build. Guides non-technical and technical users alike."
-user-invocable: true
+user_invocable: true
 tags: [personal]
 ---
 
@@ -148,7 +148,7 @@ Once the problem and stack are agreed, hand off to `/brainstorm`. Write a handof
 
 ### Step 1: Write discovery summary
 
-Save to `specs/docs/<date>-<topic>/discovery.md`:
+Save to `working/<date>-<topic>/discovery.md`:
 
 ```markdown
 # Discovery: <Project Name>
@@ -185,7 +185,7 @@ Invoke `/brainstorm` with a reference to the discovery doc. The brainstorm will:
 
 When invoking brainstorm, include the project idea and a note about the stack:
 
-> `/brainstorm <project description> -- discovery doc at specs/docs/<date>-<topic>/discovery.md, stack tier is <tier>`
+> `/brainstorm <project description> -- discovery doc at working/<date>-<topic>/discovery.md, stack tier is <tier>`
 
 ---
 
@@ -202,7 +202,7 @@ When invoking brainstorm, include the project idea and a note about the stack:
 
 ## Resuming a Kickoff
 
-If a discovery doc exists at `specs/docs/**/discovery.md` but no brainstorm doc exists alongside it:
+If a discovery doc exists at `working/**/discovery.md` but no brainstorm doc exists alongside it:
 
 1. Read the discovery doc
 2. Present a summary of where things left off

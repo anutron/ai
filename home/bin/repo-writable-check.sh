@@ -7,7 +7,7 @@
 # MAIN_REPO might be unwritable — sandbox profile, missing dir, perms — and
 # treats any failure as sandbox mode.
 #
-# Usage:  sandbox-probe.sh [MAIN_REPO]
+# Usage:  repo-writable-check.sh [MAIN_REPO]
 # Output: "ok"      — MAIN_REPO/.claude/ is writable
 #         "sandbox" — write failed; caller should use sandbox-mode dispatch
 # Exit:   0 always (errors are signaled in output, not exit code)
@@ -29,7 +29,7 @@ if ! mkdir -p "$MAIN_REPO/.claude" 2>/dev/null; then
     exit 0
 fi
 
-PROBE_FILE="$MAIN_REPO/.claude/.sandbox-probe-$$"
+PROBE_FILE="$MAIN_REPO/.claude/.repo-writable-check-$$"
 if touch "$PROBE_FILE" 2>/dev/null; then
     rm -f "$PROBE_FILE" 2>/dev/null
     echo "ok"

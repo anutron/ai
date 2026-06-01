@@ -1,6 +1,7 @@
 ---
 name: anutron-install
 description: Install the anutron (claude-skills) kit into the current project — symlinks or copies skills, registers hooks, compiles CLAUDE.md from snippets.
+disable-model-invocation: true
 tags: [personal]
 ---
 
@@ -9,6 +10,8 @@ tags: [personal]
 Installs the anutron (claude-skills) kit into the current working directory: skills land in `.claude/skills/`, hook scripts in `.claude/hooks/`, and compiled snippets are injected into `CLAUDE.md` between `BEGIN ANUTRON-INSTALL` / `END ANUTRON-INSTALL` markers. A breadcrumb at `.anutron-install.json` records everything the uninstaller needs to reverse the operation.
 
 ## How to invoke
+
+**Confirm the install mode and scope with the user before running** — this writes skills/hooks into `.claude/`, injects a block into `CLAUDE.md`, and edits `.claude/settings.json`. Once confirmed:
 
 ```bash
 bash "$(dirname "$SKILL_PATH")/install.sh"
