@@ -25,18 +25,68 @@ If `sandbox`: follow the sections below.
 
 ## Generic capability detection
 
-This doc avoids naming any specific host (no argus, no hera, no plannotator). The skills detect three host capabilities at runtime by tool shape:
+This doc avoids naming any specific host (no argus, no hera, no plannotator). The skills detect these host capabilities at runtime by tool shape:
 
-- **Task spawning** – a tool whose name matches `mcp__*__task_create` or `mcp__*__*_task_create`. The host can create a fresh worktree and spawn a worker in it.
+- **Orchestration** – a set of tools whose names match `mcp__*__*_new_orchestrator` and `mcp__*__*_spawn_worker`, usually alongside a role-status setter `mcp__*__*_status` and the coordination-channel pair below. The host can spawn workers as *managed roles* bound to a coordinator under an orchestrator — visible in a team view, with an observable status lifecycle — rather than as loose, unbound tasks. This is the richest capability; when present it is the dispatch path (Tier 0 below), and the plain task-spawning path (Tier 1) becomes the fallback.
+- **Task spawning** – a tool whose name matches `mcp__*__task_create` or `mcp__*__*_task_create`. The host can create a fresh worktree and spawn a worker in it, but the worker is an unbound task (no role, no team view).
 - **Coordination channel** – a pair of tools whose names contain `_send`/`_message_send` and `_inbox`/`_messages`. The calling session and worker can exchange messages.
 - **Clipboard helper** – `pbcopy` on PATH, or any MCP tool matching `mcp__*__*clipboard*`. The skill can stage commands for the user to run elsewhere.
 - **Host git/PR helper** – a tool whose name matches `mcp__*__*_push`, `mcp__*__*_gh_pr_*`, `mcp__*__*_merge_to_*`, or a similar host-side git verb. When a landing step (push, open PR, merge to the default branch) must reach the host, calling this directly is cleaner than staging shell commands on the clipboard for the user. Prefer it over the clipboard chain whenever it is present.
 
 When the skill needs a capability, look through the currently available MCP tools and pick the one whose shape matches. If multiple candidates exist, prefer the one whose host namespace is most active in the session (i.e. has had other recent tool calls). If none exist, fall back to the next degradation tier.
 
+## Tier 0: orchestration-managed dispatch (preferred)
+
+If the **orchestration** capability is present (a `*_new_orchestrator`-shaped tool and a `*_spawn_worker`-shaped tool — see Generic capability detection), use it in preference to Tier 1. The difference matters: a `*_spawn_worker`-shaped tool produces a worker that is *born bound* to a coordinator as a managed role — it appears in the host's team view, sits in an orchestration tree under the calling session, and reports its lifecycle through the host's role-status ladder and message bus. A plain `task_create` worker (Tier 1) is none of those things: it is a loose task the calling session has to poll out-of-band. When the orchestration capability exists, the loose-task path is a regression, so take this tier.
+
+### Step 0a: become — or reuse — the coordinator (once per skill invocation)
+
+The calling session must hold a coordinator role before it can spawn workers. Do not blindly bootstrap a new one — a session that is already a coordinator (e.g. a `/bugbash` that has already dispatched workers, or was resumed) must reuse its existing orchestrator, or it will fragment its team across two orchestrators.
+
+1. **Claim-probe first.** Call the join tool (`*_join`-shaped) in claim mode — pass `cwd` only, no orchestrator and no role name. It reports the calling session's current role, if any.
+   - **Already a coordinator** → reuse that orchestrator. Capture its name; every `*_spawn_worker` call below targets it. Do **not** bootstrap.
+   - **Not bound to any role** (the probe reports no binding) → bootstrap once: call the `*_new_orchestrator`-shaped tool with `cwd`, a unique orchestrator `name` (e.g. `bugbash-<short-slug>` / `fixit-<short-slug>` — unique so a re-run never collides with a prior live binding), and a `coordinator_role_name` (e.g. `coordinator`).
+   - **Bound only as a worker/freelance** (the session is itself a worker in some parent tree) → still bootstrap a fresh, uniquely-named orchestrator for this skill's team. A task may hold bindings in several orchestrators, so this nests cleanly.
+
+Cache the resulting orchestrator name for the rest of the invocation. This whole step runs once, not per worker.
+
+### Step 0b: spawn each fix worker as a managed role
+
+For each bug/issue, call the `*_spawn_worker`-shaped tool instead of `git worktree add` + in-process `Agent` (or Tier 1's `task_create`). The contract you assume:
+
+- **Input:** the orchestrator name (from Step 0a), the worker prompt (same content you would have given the in-process Agent), an optional role/worker name (a slug — the host uniquifies it within the orchestrator), an optional `model`, and a **base branch** (see below). The host creates the worktree outside the sandbox, binds the worker to your orchestrator, and starts its session.
+- **Output:** the host returns the worker's role name and a task identifier. The worker is now visible in the team view under your coordinator role.
+
+**Base ref (required — do not skip).** A spawned worker is branched off the repo's default branch unless told otherwise. But the calling session is often on a stacked feature branch whose code the bug actually lives in — branching off the default branch would build the fix against code that does not contain the bug. Capture the calling session's current branch and pass it as the spawn's base branch:
+
+```bash
+BASE_REF=$(git branch --show-current 2>/dev/null)   # e.g. add-hera-view; empty if detached → fall back to HEAD
+```
+
+That branch already exists on the host (the sandbox worktree was cut from it), so the host can branch the worker from it directly.
+
+**Worker end-of-life contract.** A born-bound worker reports through the host, not back into your session, so add these final steps to every worker prompt — on finish:
+
+1. Push its feature branch to the host remote.
+2. Set its own role status to **done** via the `*_status`-shaped tool. (On hosts where a worker reporting `done` auto-rolls its task to an in-review / ready-to-close state, this is the signal the coordinator waits on.)
+3. Send a one-line message to the coordinator over the bus (`*_send`-shaped): `status: done|blocked`, the branch name, a one-line summary, and a confidence note.
+4. Go idle (do not self-complete or self-archive — the coordinator owns that, see Step 0c).
+
+### Step 0c: coordinator owns the full lifecycle
+
+The coordinator (the calling session) drives every worker from done to retired with no user involvement on the happy path. Watch the bus / tree (`*_inbox`-shaped, tree-updates) for workers reporting done, and for each one — in completion order, **sequentially** to keep merges conflict-safe:
+
+1. **Review.** Run the standard two-stage review (spec compliance, then code quality) against the worker's pushed branch. The calling session can read the remote even in sandbox mode. This is where "high confidence" is enforced — if a fix comes back low-confidence or a reviewer finds real issues, send `verified: false` + feedback to the worker and let it iterate; only escalate to the user if it cannot converge.
+2. **Merge into the coordinator's own worktree.** Per Tier 3 Case A: `git fetch` the worker's branch and `git merge` it into the calling session's current branch — a write to the coordinator's *own* writable worktree, no staging needed. Because fixes land in arbitrary completion order on top of each other, the coordinator resolves any merge conflicts here and re-runs the relevant tests. The coordinator's worktree thus accumulates every fix. For OpenSpec projects, run `openspec archive <change>` in this worktree once the change has landed (its delta is now in the merged tree) — the coordinator's worktree is writable, so no parked-worker dance is needed (see Async verify-then-archive).
+3. **Retire the worker through the host.** After a clean merge, mark the worker done and remove it from the active team: call the host's task-complete tool (`*_complete`-shaped) and, if the host exposes archival (`*_archive`-shaped), archive its task. The role drops out of the active rail; its lifecycle is fully closed through the host.
+
+After the last worker lands, push the coordinator's accumulated branch back to the host via a host git/PR helper (`*_push`-shaped — see Generic capability detection); fall back to the Tier 2 clipboard chain only if no such helper exists. Escalate to the user only for fixes that ended low-confidence/blocked or conflicts that are not safely auto-resolvable — everything else completes without user work.
+
+**Degradation.** If the orchestration capability is absent, skip this tier entirely and fall through to Tier 1.
+
 ## Tier 1: delegate to a task-spawning host
 
-If a `task_create`-shaped tool is available, use it instead of `git worktree add` + in-process `Agent`. The contract you assume:
+If no orchestration capability is available (Tier 0) but a `task_create`-shaped tool is, use it instead of `git worktree add` + in-process `Agent`. The contract you assume:
 
 - **Input:** a task description (same prompt content you would have given the in-process Agent), a slug, a **base ref** (see below), and any host-specific flags.
 - **Output:** the host creates a worktree outside the sandbox and spawns a worker in it. The host returns the worktree path and a task identifier.
@@ -110,8 +160,11 @@ Fixit ready: <short title>
 
 Standard OpenSpec lifecycle has the calling session run `openspec archive <name>` once the change lands on main. In sandbox mode the calling session cannot touch MAIN_REPO, so the worker has to archive from its own worktree. This requires the worker to park between "fix pushed" and "archive run" and the calling session to signal verification.
 
-This pattern only fires when **all three** are true:
+**Not needed in the orchestration tier (Tier 0).** This parked-worker dance exists because in the Tier 1 path the worker's worktree is the only writable place an archive can run. In Tier 0 the coordinator merges each fix into its *own* writable worktree, so the coordinator simply runs `openspec archive <change>` there after the change lands (and before retiring the worker in Step 0c) — no parking, no verify-signal round-trip. The rest of this section applies only when dispatch fell through to Tier 1.
 
+This pattern only fires when **all four** are true:
+
+- Dispatch used Tier 1 (the orchestration tier was not available).
 - `openspec/` exists at the project root.
 - The probe returned `sandbox`.
 - A coordination channel is available (per Generic capability detection above).
@@ -164,7 +217,10 @@ This is strictly worse than the parked-worker path (user has more to do, archive
 
 ## What not to do
 
-- Do not hardcode any host name (argus, hera, plannotator, etc.) in detection logic. Tool-shape matching is the contract.
+- Do not hardcode any host name (argus, hera, plannotator, etc.) in detection logic. Tool-shape matching is the contract — including the orchestration tier (`*_new_orchestrator` / `*_spawn_worker` / `*_status`).
+- Do not bootstrap a new orchestrator when the calling session already holds a coordinator role — claim-probe first and reuse it (Tier 0, Step 0a). Bootstrapping twice fragments the team across orchestrators.
+- Do not have a born-bound worker self-complete or self-archive. The worker reports `done` and goes idle; the coordinator merges its branch and then retires it (Tier 0, Step 0c).
+- Do not fall through to Tier 1's loose-task path when the orchestration capability is present — an unbound task is the exact regression this tier exists to prevent.
 - Do not auto-merge into MAIN_REPO's default branch from sandbox mode — stage it, or use a host PR/merge helper. Merging the worker's branch into the calling session's *own* feature branch is fine: that write lands in the writable worktree, not MAIN_REPO.
 - Do not branch the worker off the default branch when the calling session is on a stacked feature branch — pass the current branch as the base ref (Tier 1).
 - Do not tell the user the caller "will be notified" of completion when no coordination channel exists — say it must be polled (Tier 1).

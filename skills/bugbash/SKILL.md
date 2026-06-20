@@ -262,7 +262,7 @@ Keep it short — the user wants to keep reporting bugs, not read paragraphs.
 
 ## Dispatching an Agent
 
-**Sandbox-mode branch.** Check the `Sandbox mode:` value from the Context block. If `sandbox`, read `skills/agent-driven-development/sandbox-mode.md` and use the sandbox-mode dispatch path (Tier 1 host task-spawning or Tier 2 staged-command) instead of `git worktree add` from this session. The per-bug status moves (`mv todo → in-progress`, etc.) still apply – sandbox mode only changes how the worker worktree is created and how merges land. The `On Agent Completion` section below also defers to sandbox-mode.md for the merge and (if OpenSpec) archive paths.
+**Sandbox-mode branch.** Check the `Sandbox mode:` value from the Context block. If `sandbox`, read `skills/agent-driven-development/sandbox-mode.md` and use its dispatch tiers — it auto-selects the highest-capability path available (orchestration-managed, then host task-spawning, then staged-command) — instead of `git worktree add` from this session. When the orchestration tier is taken, the calling session is the coordinator and each dispatched bug worker is a managed role on its team; the per-bug status moves below still apply. The per-bug status moves (`mv todo → in-progress`, etc.) still apply – sandbox mode only changes how the worker worktree is created and how merges land. The `On Agent Completion` section below also defers to sandbox-mode.md for the merge and (if OpenSpec) archive paths.
 
 When dispatching a bug to an agent:
 
@@ -604,23 +604,25 @@ SCRIPT=$( [ -x .claude/skills/bugbash/generate-report.sh ] && echo .claude/skill
 "$SCRIPT" <project-root>
 ```
 
-This parses all `merged/` bug files and writes `.bug-bash/report.md` with title, fix summary, test guidance, and files changed for each bug. Runs in under a second.
+This parses all `merged/` bug files and writes `.bug-bash/report.md` with title, fix summary, test guidance, and a `- [ ] Verified fixed` checkbox for each bug. Runs in under a second.
 
 If the script is missing or fails, fall back to writing the report manually using the format below. **Only include bugs in `merged/`** — skip `verified/` (already passed) and other statuses.
 
 ```markdown
 # Bug Bash — Regression Testing
 
-Instructions: Test each bug below. Add an inline comment on any that fail.
-Bugs without comments are assumed to PASS and will be moved to verified.
+Check the box next to each bug you've verified fixed. Submit when done.
+Unchecked bugs will be re-filed as new issues.
 
 ---
 
-## BUG-<NNN>: <title> [needs testing]
+## BUG-<NNN>: <title>
 
 - **What was fixed:** <1-2 line summary from Resolution section>
 - **How to test:** <specific repro steps>
 - **Files changed:** <files changed>
+
+- [ ] Verified fixed
 
 ---
 (repeat for each merged/ bug)
@@ -634,17 +636,20 @@ Invoke `plannotator:plannotator-annotate` with `.bug-bash/report.md`.
 
 ### Step 4: Process Annotations
 
-When annotations come back:
+When annotations come back, Plannotator encodes each checked checkbox as an annotation with:
+`text: "Mark as completed (under \"BUG-<NNN>: <title>\"): Verified fixed"`
 
-- **Annotated bugs = FAILED regression.** For each:
-  - File a new bug (next ID) referencing the original as `related:`
-  - Move the new bug to `todo/` for dispatch
-  - Move the original to `failed/` — it didn't pass acceptance testing, so it shouldn't clutter the dashboard
+Parse the bug ID from the section context in `text` (the part between `under "` and `")`).
 
-- **Unannotated bugs = PASSED.** Move to `verified/`:
+- **Checked bugs (have a "Mark as completed" annotation) = PASSED.** Move to `verified/`:
   ```bash
   mv .bug-bash/merged/bug-<NNN>.md .bug-bash/verified/
   ```
+
+- **Unchecked bugs (no annotation) = FAILED regression.** For each:
+  - File a new bug (next ID) referencing the original as `related:`
+  - Move the new bug to `todo/` for dispatch
+  - Move the original to `failed/` — it didn't pass acceptance testing, so it shouldn't clutter the dashboard
 
 ### Step 5: Report Summary
 

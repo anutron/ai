@@ -15,7 +15,6 @@ The skills in this toolkit, grouped by purpose. Spec-driven development has its 
 | [guard](../skills/guard/SKILL.md) | Use before any git commit to check for secrets, security antipatterns, and test breakage |
 | [kickoff](../skills/kickoff/SKILL.md) | Use when starting a brand new project from scratch -- runs discovery, picks a tech stack tier, then hands off to brainstorm and build. Guides non-technical and technical users alike. |
 | [rereview](../skills/rereview/SKILL.md) | Use when a previous review missed something or the user wants a thorough second pass — re-review with fresh eyes, zero regressions, go slow and analyze everything |
-| [review](../skills/review/SKILL.md) | Use when the user asks to review code, review current changes, or review a PR number |
 | [test](../skills/test/SKILL.md) | Use after writing or modifying code to run targeted tests and identify coverage gaps, before claiming code works |
 | [unstaged](../skills/unstaged/SKILL.md) | Use when the user wants to see what's changed or plan commits — shows uncommitted/unstaged changes grouped by logical commit themes |
 
@@ -51,7 +50,6 @@ These skills describe how agents should think and work. They're loaded by refere
 | [handoff](../skills/handoff/SKILL.md) | Generate a handoff prompt to pass context to another agent thread. Use when switching repos, handing off work, or sharing context between agents. |
 | [improve](../skills/improve/SKILL.md) | Use at the end of a session to run a retrospective — upgrades skills, fixes codebase gaps, and captures durable knowledge |
 | [interview](../skills/interview/SKILL.md) | Structured interview-style review of any system, feature, or codebase. Builds an inventory, walks through items one-by-one in small chunks, tracks progress, captures decisions as artifacts. Use when the user wants to systematically review, audit, or evaluate something collaboratively. |
-| [list-skills](../skills/list-skills/SKILL.md) | Quick reference of all available skills and what they do. Use when you need a reminder of your toolkit. |
 | [migrate-to-openspec](../skills/migrate-to-openspec/SKILL.md) | Convert a legacy AI-RON spec project (`.specs` file + `specs/*.md`) to OpenSpec layout with verifiable fidelity. One-time per project. Translator + verifier agents preserve every Given/When/Then case as an OpenSpec scenario, archive originals at `.workflow/legacy-specs/`, and install the new pre-commit hook + CLAUDE.md snippets. |
 | [promote](../skills/promote/SKILL.md) | Use when checking which project skills should be available globally — finds skills not yet promoted and recommends which to symlink to ~/.claude/skills/ |
 | [set-topic](../skills/set-topic/SKILL.md) | Set the session topic displayed in the status line. Usage: /set-topic <topic text> |

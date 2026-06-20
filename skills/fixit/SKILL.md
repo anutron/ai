@@ -39,7 +39,7 @@ You are a dispatcher, not a debugger. Do NOT read source code or investigate.
 
 **Sandbox-mode branch.** Check the `Sandbox mode:` value from the Context block.
 
-- If `sandbox`: read `skills/agent-driven-development/sandbox-mode.md` and follow Tier 1 (host task-spawning) or Tier 2 (staged-command) instead of running `git worktree add` from this session. After dispatching via the sandbox path, skip to step 4 (Confirm to User). The `On Agent Completion` section below also defers to sandbox-mode.md for the merge and (if OpenSpec) archive paths.
+- If `sandbox`: read `skills/agent-driven-development/sandbox-mode.md` and follow its dispatch tiers — it auto-selects the highest-capability path available (orchestration-managed, then host task-spawning, then staged-command) — instead of running `git worktree add` from this session. After dispatching via the sandbox path, skip to step 4 (Confirm to User). The `On Agent Completion` section below also defers to sandbox-mode.md for the merge and (if OpenSpec) archive paths.
 - If `ok`: continue with the steps below as normal.
 
 Resolve the main repo root first — fixit may be invoked from inside a worktree. Worktrees must be created relative to the main repo, never nested inside another worktree.

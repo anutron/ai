@@ -36,6 +36,7 @@ User-provided arguments always win over auto-detection. If auto-detection is amb
 - Active changes: !`test -d openspec/changes && openspec list --changes --json 2>/dev/null || echo "none"`
 - Worktree info: !`git rev-parse --show-toplevel && echo "---" && git worktree list --porcelain 2>/dev/null | head -20`
 - Main repo root: !`git worktree list --porcelain 2>/dev/null | head -1 | sed 's/^worktree //'`
+- Sandbox mode: !`~/.claude/bin/repo-writable-check.sh`
 - Project type: !`find . -maxdepth 1 \( -name go.mod -o -name Gemfile -o -name package.json -o -name Cargo.toml -o -name pyproject.toml \) 2>/dev/null | head -5`
 - Test framework: !`find . -maxdepth 4 -name "*_test.*" -o -name "*.test.*" -o -name "*_spec.*" 2>/dev/null | head -10`
 
@@ -156,7 +157,7 @@ In OpenSpec the deltas under `openspec/changes/<active>/specs/<capability>/spec.
 
 ### Pre-loop setup
 
-**Resolve the main repo root.** Ralph may be invoked from inside a git worktree. All durable artifacts (reviews, worktrees for fixes) must be written relative to the main repo, not the current worktree.
+**Resolve the main repo root and the artifact root.** Ralph may be invoked from inside a git worktree. Durable artifacts (reviews, worktrees for fixes, `.gitignore` edits) prefer the main repo — but when the session cannot write there (the `Sandbox mode:` value in the Context block is `sandbox`), they fall back to the current worktree, which is the only writable location. Do not attempt the main-repo write anyway "to be sure" — the probe already tried; trust it.
 
 ```bash
 # MAIN_REPO is the root of the primary worktree (the original clone).
@@ -166,9 +167,17 @@ IS_WORKTREE=false
 if [ "$(git rev-parse --show-toplevel)" != "$MAIN_REPO" ]; then
   IS_WORKTREE=true
 fi
+
+# ARTIFACT_ROOT is where durable artifacts land. Use the Sandbox mode value
+# already printed in the Context block — do not re-run the probe.
+if [ "{Sandbox mode}" = "sandbox" ]; then
+  ARTIFACT_ROOT=$(git rev-parse --show-toplevel)
+else
+  ARTIFACT_ROOT="$MAIN_REPO"
+fi
 ```
 
-If `IS_WORKTREE` is true, all paths for `.claude/reviews/`, `.claude/worktrees/`, and `.gitignore` edits use `$MAIN_REPO` as the base — not the CWD. Git operations (diff, log, commit) still run in the CWD worktree as normal.
+If `IS_WORKTREE` is true, all paths for `.claude/reviews/` and `.gitignore` edits use `$ARTIFACT_ROOT` as the base — not the CWD (in sandbox mode these coincide, and that's fine). Fix worktrees are the exception: they always require `$MAIN_REPO` (never nest a worktree inside a worktree), so in sandbox mode they are not created from this session at all — Phase 3 dispatch defers to `agent-driven-development/sandbox-mode.md`. Git operations (diff, log, commit) still run in the CWD worktree as normal.
 
 Record the starting point so ralph's own changes can be isolated later:
 
@@ -179,10 +188,10 @@ PRE_RALPH_SHA=$(git rev-parse HEAD)
 Ensure the reviews directory exists and is gitignored:
 
 ```bash
-mkdir -p "$MAIN_REPO/.claude/reviews"
-# Add to .gitignore if not already covered (check in main repo)
-if ! git check-ignore -q "$MAIN_REPO/.claude/reviews" 2>/dev/null; then
-  echo ".claude/reviews/" >> "$MAIN_REPO/.gitignore"
+mkdir -p "$ARTIFACT_ROOT/.claude/reviews"
+# Add to .gitignore if not already covered (check relative to the artifact root)
+if ! git check-ignore -q "$ARTIFACT_ROOT/.claude/reviews" 2>/dev/null; then
+  echo ".claude/reviews/" >> "$ARTIFACT_ROOT/.gitignore"
 fi
 ```
 
@@ -197,6 +206,7 @@ Ralph-review starting:
 - Pre-ralph SHA: {sha}
 - Running in worktree: {yes — $CWD | no}
 - Main repo: {$MAIN_REPO}
+- Sandbox mode: {ok | sandbox — artifacts go to $ARTIFACT_ROOT}
 ```
 
 ---
@@ -566,10 +576,10 @@ After the loop exits, generate the report.
 ### Report file
 
 ```bash
-mkdir -p "$MAIN_REPO/.claude/reviews/$(date +%Y-%m-%d)"
+mkdir -p "$ARTIFACT_ROOT/.claude/reviews/$(date +%Y-%m-%d)"
 ```
 
-Write the report to `$MAIN_REPO/.claude/reviews/YYYY-MM-DD/ralph-review-report.md` AND display it in the terminal. Always use the main repo root for reviews — never write them inside a worktree.
+Write the report to `$ARTIFACT_ROOT/.claude/reviews/YYYY-MM-DD/ralph-review-report.md` AND display it in the terminal. Prefer the main repo root for reviews so they aggregate in one place; write them inside the current worktree only when sandbox mode says the main repo is unwritable. If a report already exists at that path for today (another session wrote one), use a distinct name: `ralph-review-report-<change-name>.md`.
 
 ### Report template
 
@@ -720,6 +730,8 @@ Each fix follows the same process as `/fixit` — worktree isolation, spec-first
 
 **Step 2: Create worktree.** Always create worktrees relative to `$MAIN_REPO`, never inside the current worktree.
 
+**Sandbox-mode branch.** If the Context block probe returned `sandbox`, `git worktree add` against `$MAIN_REPO` will fail at the OS layer. Read `.claude/skills/agent-driven-development/sandbox-mode.md` and dispatch via Tier 1 (host task-spawning, passing the current branch as the base ref) or Tier 2 (staged-command) instead of creating the worktree from this session. Skip Steps 2-3 below; landing on completion follows Tier 3.
+
 ```bash
 SLUG="ralph-fix-<short-slug>"
 git worktree add -b "$SLUG" "$MAIN_REPO/.claude/worktrees/$SLUG" HEAD
@@ -805,7 +817,7 @@ Implementation follows agent-driven-development pattern for a single task. Read 
 
 **Step 4: Print one line and move on** — do not wait for the agent.
 
-**On agent completion:** Follow the same completion flow as `/fixit` — two-stage review (spec reviewer → code quality reviewer), merge to original branch, worktree cleanup. Report result to user when done.
+**On agent completion:** Follow the same completion flow as `/fixit` — two-stage review (spec reviewer → code quality reviewer), merge to original branch, worktree cleanup. Report result to user when done. In sandbox mode, the reviews still run (read against the worker's pushed branch) but landing and cleanup follow Tier 3 of `sandbox-mode.md` instead of a direct merge.
 
 **Conflict avoidance:** Before dispatching, check if a previously dispatched fix from this session touches the same file(s). If so, wait for that fix to complete before dispatching the new one — concurrent worktrees editing the same files will cause merge conflicts. Independent files can run in parallel.
 
@@ -936,5 +948,6 @@ When the work is completed (via `/fixit`, `/spec-todo`, or manual fix), delete t
 | `tasks.md` only (no deltas) | Plan-advisory mode. No spec drift detection |
 | No openspec/ directory | Conservative mode. Auto-fixes only obvious bugs/security/lint |
 | No plannotator | Terminal report + GitHub PR option. No Plannotator annotation |
+| Main repo unwritable (sandbox mode probe returns `sandbox`) | Durable artifacts (report, `.gitignore` edit) land in the current worktree; background fixes dispatch per `agent-driven-development/sandbox-mode.md` tiers |
 
 `/spec-recommender` and `/spec-writer` are companion skills. If they are not present in a given project, ralph-review degrades gracefully — spec drift items are reported as plain markdown recommendations instead of going through the interactive intent-resolution flow.

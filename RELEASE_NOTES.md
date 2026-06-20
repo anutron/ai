@@ -1,3 +1,26 @@
+## v1.33.0 — 2026-06-20
+
+**Orchestration-managed dispatch for `/fixit` and `/bugbash` in sandboxed worktrees**
+
+`agent-driven-development/sandbox-mode.md` gains a new top dispatch tier (Tier 0) that fires when the host exposes a multi-agent orchestration capability (detected by tool shape — `*_new_orchestrator` + `*_spawn_worker`). Instead of spawning each fix worker as a loose, unbound task, the calling session becomes a coordinator and each worker is a born-bound managed role on its team:
+
+- Claim-probe before bootstrapping, so a session that is already a coordinator reuses its orchestrator instead of fragmenting its team.
+- Base-ref passthrough, so workers branch off the calling session's stacked feature branch rather than the default branch.
+- The coordinator owns the full lifecycle: two-stage review, sequential merge into its own writable worktree with conflict resolution, then worker complete + archive (and OpenSpec archive without the parked-worker dance).
+- Escalates to the user only on low-confidence or blocked fixes.
+
+Detection stays host-agnostic (tool-shape only), so `bugbash`/`fixit` gain no host-specific language and degrade gracefully to the task-spawning and staged-command tiers where orchestration is absent.
+
+**Retired skills**
+
+- Removed `review` and `list-skills`.
+
+**Other**
+
+- Minor updates to `ralph-review` and `bugbash`'s `generate-report.sh`.
+
+---
+
 ## v1.32.0 — 2026-06-01
 
 **Sandbox-aware `/fixit` and `/bugbash`: landing-tier and OpenSpec routing fixes**

@@ -22,8 +22,8 @@ fi
 cat > "$REPORT" <<'HEADER'
 # Bug Bash — Regression Testing
 
-Instructions: Test each bug below. Add an inline comment on any that fail.
-Bugs without comments are assumed to PASS and will be moved to verified.
+Check the box next to each bug you've verified fixed. Submit when done.
+Unchecked bugs will be re-filed as new issues.
 HEADER
 
 for bugfile in "${bugs[@]}"; do
@@ -49,11 +49,13 @@ for bugfile in "${bugs[@]}"; do
 
 ---
 
-## ${id}: ${title} [needs testing]
+## ${id}: ${title}
 
 - **What was fixed:** ${resolution:-See bug file for details}
 - **How to test:** ${expected:-See bug file for expected behavior}
 - **Files changed:** ${files_changed}
+
+- [ ] Verified fixed
 EOF
 
 done
