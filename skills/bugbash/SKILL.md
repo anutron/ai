@@ -583,6 +583,20 @@ Wait for all active agents to complete (check with TaskOutput).
   git branch --list 'bug-bash/*' | xargs -I{} git branch -D {}
   ```
 
+### Step 4: Do NOT squash when merging this branch upward
+
+A bug bash lands one `Fix BUG-<NNN>` commit per fixed bug on the current branch. That per-bug commit history is the value:
+
+- Each commit maps 1:1 to a bug, its resolution, and the files it touched — the same mapping the regression report relies on.
+- A regression or `git bisect` later can pin the exact commit that introduced or fixed a behavior.
+- Squashing collapses N independent fixes into one opaque commit, destroying that traceability.
+
+So when this branch is later merged to its base (via `/merge`, `/pr`, `/close-worktree`, or a manual `git merge`):
+
+- **Use a merge commit or rebase that preserves the individual commits — do NOT squash.**
+- If the merge tool or prompt offers a squash option, decline it. If something defaults to squash (e.g. a squash-merge PR), call this out and recommend a non-squash merge instead.
+- Exception: if the bash produced only a single fix (one commit), squashing is harmless — the warning only matters once multiple bugs have landed.
+
 ---
 
 ## Report (Acceptance Testing)

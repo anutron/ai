@@ -1,3 +1,13 @@
+## v1.34.0 — 2026-06-20
+
+**`/bugbash`: don't squash when merging the bash branch upward**
+
+The bugbash Wrap-up gains a Step 4 warning against squash-merging the branch a bug bash landed on. Each fixed bug is its own `Fix BUG-NNN` commit, and that per-bug history is the value — it maps 1:1 to a bug, its resolution, and the files it touched (the same mapping the regression report relies on), and lets a later `git bisect` pin the exact fix or regression. Squashing collapses N independent fixes into one opaque commit and destroys that traceability.
+
+The coordinator is now told to use a merge commit or rebase that preserves the individual commits when the branch is later merged via `/merge`, `/pr`, `/close-worktree`, or a manual `git merge` — and to decline or flag any squash default. Single-fix bashes are exempted.
+
+---
+
 ## v1.33.0 — 2026-06-20
 
 **Orchestration-managed dispatch for `/fixit` and `/bugbash` in sandboxed worktrees**
