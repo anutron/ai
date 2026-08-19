@@ -108,9 +108,13 @@ Repeat the following until CI is fully green **and** there are no unresolved rev
 #### 4a: Check CI status
 
 - Use `mcp__plugin_github_github__pull_request_read` to see the current state of all checks.
-- If checks are still running, poll with exponential backoff: wait 60s, then 120s, then 240s, capping at 300s between polls. Stop after 10 minutes total and report to the user.
 - If all checks pass and there are no pending review comments, you are done -- go to Step 5.
 - If any checks have failed, proceed to 4b immediately -- do not wait.
+- If checks are still running, **delegate the wait** instead of polling inline -- this session's model turns should not be spent sleeping on a mechanical wait:
+  - **GitHub Actions (has a blocking CLI):** run `gh pr checks <pr> --watch` as a backgrounded shell command (`run_in_background: true`). This blocks at zero model-token cost until checks resolve. Once it exits, spend a model turn only to interpret the result -- pass, go to Step 5; fail, proceed to 4b.
+  - **CircleCI or any provider with no blocking "watch" subcommand:** dispatch an Agent-tool sub-agent on a cheap model (haiku) to run the poll loop -- exponential backoff (60s, 120s, 240s, capped at 300s, stop after 10 minutes total) -- and report back only once CI resolves or the timeout is hit. The sub-agent's job is strictly to wait and report status; it must not diagnose or fix failures.
+  - Either way, delegation covers only the wait. Diagnosis and repair on failure always stay with this session -- go to 4b yourself, never delegate the fix.
+  - When fetching CI logs during diagnosis, always go through the provider's MCP/CLI (Keystone `circleci_*` tools, or `gh run view --log-failed`) -- never a raw `curl` on a presigned URL.
 
 #### 4b: If CI fails -- diagnose and fix
 

@@ -41,9 +41,10 @@ If `$ARGUMENTS` was not provided, you must first identify the file (step 1), the
 
 After the user submits their annotations:
 
-1. Read each annotation carefully
-2. Make the requested changes to the spec file
-3. Do NOT commit yet — the spec is still under review
+1. Read each annotation carefully.
+2. If an annotation leaves a **question**, immediately rewrite the relevant section to answer it – don't discuss it in the terminal unless the annotation explicitly says to discuss first.
+3. Otherwise, make the requested change directly.
+4. Do NOT commit yet — the spec is still under review.
 
 ### Step 4: Re-open for review
 

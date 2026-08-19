@@ -68,6 +68,17 @@ inject_section() {
   fi
 }
 
+strip_frontmatter() {
+  local file="$1"
+  awk '
+    NR==1 && $0=="---" { infm=1; next }
+    infm && $0=="---" { infm=0; skip_blank=1; next }
+    infm { next }
+    skip_blank && $0=="" { skip_blank=0; next }
+    { skip_blank=0; print }
+  ' "$file"
+}
+
 compile_scope() {
   local scope="$1" header="$2" output="$3"
   local first=true
@@ -80,9 +91,9 @@ compile_scope() {
     if [ "$first" = true ]; then
       first=false
     else
-      echo -e "\n---\n" >> "$output"
+      echo "" >> "$output"
     fi
-    cat "$f" >> "$output"
+    strip_frontmatter "$f" >> "$output"
   done
 
   echo "" >> "$output"

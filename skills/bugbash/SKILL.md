@@ -32,6 +32,7 @@ If agent teams are not enabled, report: "Agent teams required. Add `CLAUDE_CODE_
 - OpenSpec project: !`test -d openspec && echo "yes" || echo "no"`
 - Sandbox mode: !`~/.claude/bin/repo-writable-check.sh`
 - Existing bugs: !`~/.claude/bin/bugbash-inventory.sh`
+- Next bug ID: !`~/.claude/bin/bugbash-next-id.sh`
 
 ---
 
@@ -87,14 +88,16 @@ When invoked with no arguments (or the session is already active):
    - Add `.bug-bash/` to `.gitignore` if not already there (append, don't overwrite)
    - Initialize internal state:
      ```
-     next_bug_id = 1 (or max existing + 1 if resuming)
+     next_bug_id = value from `Next bug ID` in the Context block
      active = [] (no cap — dispatch all non-conflicting bugs simultaneously)
      queue = [] (pending bugs in todo/)
      ```
-   - To find next_bug_id when resuming:
+   - **Bug IDs are sequential across worktrees, sandboxes, and developers.** The `Next bug ID` in the Context block comes from `bugbash-next-id.sh`, which computes `max(local .bug-bash/ files, "Fix BUG-NNN" commits in git log) + 1`. Deriving from git history — not just the gitignored, ephemeral `.bug-bash/` folder — means a fresh argus worktree *continues* the sequence instead of restarting at `001`, so the shared branch's log never fills with repeated `Fix BUG-001` commits that look like one bug we keep failing to fix. It's a pure git read (no external state, no host write), so it works inside sandboxed worktrees with no iris verb.
+   - To recompute at any point (e.g. after merges land mid-session, or when resuming), re-run:
      ```bash
-     ls .bug-bash/*/bug-*.md 2>/dev/null | sed 's/.*bug-\([0-9]*\)\.md/\1/' | sort -n | tail -1
+     ~/.claude/bin/bugbash-next-id.sh
      ```
+   - **Caveat:** two bug bashes allocating IDs *simultaneously* off the same base branch can pick the same number. This is rare and surfaces as a duplicate `Fix BUG-NNN` at merge time — bump the later one if it happens.
 
 2. **Print welcome:**
    ```

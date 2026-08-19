@@ -1,3 +1,37 @@
+## v1.35.0 — 2026-08-18
+
+**New: `example-skills/`**
+
+- Generic teaching copies of `brainstorm`, `interview`, and `improve` — stripped of OpenSpec, Plannotator, and every other AI-RON-specific dependency. Each is a standalone `SKILL.md` a newcomer can drop straight into their own project's `.claude/skills/<name>/` and use immediately.
+- `brainstorm`: same idea → design doc → task plan flow, minus the OpenSpec change-folder scaffolding; output goes to a plain `docs/plans/<name>/` folder, and the approval gate uses Claude Code's plan mode (`EnterPlanMode`/`ExitPlanMode`) directly.
+- `interview`: nearly unchanged — it was already generic. The OpenSpec-flavored output-format example was swapped for generic options (report, requirements doc, tickets, checklist, deck).
+- `improve`: retrospective review now happens entirely inline via `AskUserQuestion` (no Plannotator dependency); durable knowledge is captured to a plain `.claude/learnings.md` file instead of a memory MCP; new-skill classification simplified to project-only vs. user-global.
+- `scripts/publish.sh` gained a copy step so `example-skills/` ships wholesale on every publish, alongside the existing skills/docs/rules sync.
+
+**New skill: `claude-md-management`**
+
+- Reference skill documenting the snippet-based CLAUDE.md workflow — snippet locations, naming convention, template variables, and the `compile.sh` commands (compile/promote/demote/list/status). Several rule snippets (`005-claudemd-management`, `045-bash-command-style`, `060-plannotator-spec-review`) now point at it instead of duplicating the detail inline.
+
+**`/bugbash`: git-derived sequential bug IDs**
+
+- Bug IDs now come from `home/bin/bugbash-next-id.sh`, which computes `max(local .bug-bash/ files, "Fix BUG-NNN" commits in git log) + 1`. The old approach counted only the gitignored, ephemeral `.bug-bash/` folder, so a fresh worktree reset the counter to `001` and the shared branch's log filled with repeated `Fix BUG-001` commits. Deriving from git history instead means the sequence continues across worktrees, sandboxes, and developers.
+
+**`/plannotator-specs`: auto-rewrite on questions**
+
+- When an annotation leaves a question, the skill now immediately rewrites the relevant section to answer it instead of stopping to discuss in the terminal — matching the same convention `/brainstorm`'s Plannotator review path already used.
+
+**`/pr`: delegate CI-wait polling**
+
+- Waiting on CI no longer burns model turns on an inline sleep loop. For GitHub Actions, `gh pr checks --watch` runs as a backgrounded shell command (zero model-token cost until it exits). For providers with no blocking watch subcommand (e.g. CircleCI), a cheap sub-agent runs the exponential-backoff poll and reports back only once CI resolves. Diagnosis and repair on failure always stay with the main session.
+
+**Misc**
+
+- New `home/bin/argus-permission-approve.sh` and `home/bin/fetch-ci-log.sh`, published alongside `bugbash-next-id.sh`.
+- `docs/skills-catalog.md` gains the `claude-md-management` row under "Discipline and orchestration".
+- Several rule snippets trimmed (`010-plan-formatting`, `015-writing-style` em-dash scope, `040-tech-stack` legacy-app cleanup).
+
+---
+
 ## v1.34.0 — 2026-06-20
 
 **`/bugbash`: don't squash when merging the bash branch upward**

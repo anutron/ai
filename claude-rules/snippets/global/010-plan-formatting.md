@@ -4,30 +4,14 @@ audience: [shared]
 ---
 ## Markdown formatting requirements
 
-All markdown you produce MUST render correctly in Plannotator.
-
-**CRITICAL:** Consecutive lines without blank lines between them collapse into a single paragraph.
-
-**Rules:**
-
-- Use **bullet lists** for related items – never bare lines in sequence
-- Put a **blank line** before and after every heading, list, code block, and paragraph
-- Each distinct fact gets its own bullet or paragraph – never pack multiple facts onto one line
-
-**Bad** (separate lines but no blank lines – collapses into one paragraph):
+Consecutive lines with no blank line between them collapse into one paragraph in Plannotator (confirmed still true as of v0.19.27) – always put a blank line before/after every heading, list, code block, and paragraph, and use a bullet list for a run of related facts rather than bare sequential lines.
 
 ```markdown
+<!-- Bad: collapses to one line -->
 **Type:** troubleshooting
-**Why:** The migration broke prod
-**Before:** Old approach
-**After:** New approach
-```
+**Why:** broke prod
 
-**Good** (bullet list – each field renders on its own line):
-
-```markdown
+<!-- Good -->
 - **Type:** troubleshooting
-- **Why:** The migration broke prod
-- **Before:** Old approach
-- **After:** New approach
+- **Why:** broke prod
 ```

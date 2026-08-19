@@ -16,6 +16,4 @@ New apps follow the spectrum at `{{PROJECT_DIR}}/docs/stack-spectrum.md`. Pick t
 
 Going from personal/distributed to deployable is a rebuild, not an upgrade – start fresh with the deployable blueprint.
 
-Legacy apps (`fitbit-cli`, `gmail-mcp`, `things-mcp`) stay on their existing stacks – don't migrate.
-
 MCP servers: Node.js/TypeScript (SDK is Node-native); outside the web spectrum.
